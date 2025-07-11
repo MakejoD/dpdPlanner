@@ -1,0 +1,100 @@
+name: Feature Request
+description: Solicitar una nueva funcionalidad o mejora
+title: "[FEATURE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por sugerir una nueva funcionalidad. Por favor, proporciona información detallada.
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Módulo relacionado
+      description: ¿A qué módulo se relaciona esta funcionalidad?
+      options:
+        - Autenticación
+        - Administración
+        - Planificación
+        - Seguimiento
+        - Presupuesto
+        - Reportes
+        - Perfil
+        - Nuevo módulo
+        - General
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridad
+      description: ¿Cuál consideras que es la prioridad de esta funcionalidad?
+      options:
+        - Baja
+        - Media
+        - Alta
+        - Crítica
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema o necesidad
+      description: ¿Qué problema resuelve esta funcionalidad?
+      placeholder: Como usuario del sistema POA, necesito...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solución propuesta
+      description: Describe tu idea para resolver el problema
+      placeholder: La funcionalidad debería permitir...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: ¿Has considerado otras formas de resolver este problema?
+      placeholder: También pensé en...
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requerimientos específicos
+      description: Lista los requerimientos técnicos o funcionales específicos
+      placeholder: |
+        - El sistema debe permitir...
+        - La interfaz debe incluir...
+        - Debe integrarse con...
+
+  - type: textarea
+    id: mockups
+    attributes:
+      label: Mockups o referencias
+      description: Si tienes mockups, capturas de pantalla de referencia, o enlaces a sistemas similares, inclúyelos aquí
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impacto esperado
+      description: ¿Qué áreas se verían beneficiadas? (selecciona todas las que apliquen)
+      options:
+        - label: Mejora la experiencia del usuario
+        - label: Aumenta la eficiencia operativa
+        - label: Facilita el cumplimiento normativo
+        - label: Mejora la toma de decisiones
+        - label: Reduce errores manuales
+        - label: Optimiza el rendimiento del sistema
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Información adicional
+      description: Cualquier otra información relevante sobre esta funcionalidad

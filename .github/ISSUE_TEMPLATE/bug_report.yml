@@ -1,0 +1,100 @@
+name: Bug Report
+description: Reportar un error o problema en el sistema
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por tomarte el tiempo de reportar este error. Por favor, completa la información solicitada.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión
+      description: ¿Qué versión del sistema estás usando?
+      placeholder: ej. v1.0.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Entorno
+      description: ¿En qué entorno ocurrió el error?
+      options:
+        - Desarrollo
+        - Staging
+        - Producción
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Módulo afectado
+      description: ¿Qué módulo presenta el problema?
+      options:
+        - Autenticación
+        - Administración
+        - Planificación
+        - Seguimiento
+        - Presupuesto
+        - Reportes
+        - Perfil
+        - Otro
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción del error
+      description: Describe claramente qué está pasando
+      placeholder: El sistema muestra un error cuando...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducir
+      description: Pasos detallados para reproducir el error
+      placeholder: |
+        1. Ir a '...'
+        2. Hacer clic en '....'
+        3. Completar el formulario con '....'
+        4. Ver error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamiento esperado
+      description: ¿Qué esperabas que pasara?
+      placeholder: El sistema debería...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Comportamiento actual
+      description: ¿Qué está pasando realmente?
+      placeholder: En lugar de eso, el sistema...
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs y mensajes de error
+      description: Copia aquí cualquier log o mensaje de error relevante
+      render: shell
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Información adicional
+      description: Cualquier otra información que pueda ser útil (capturas de pantalla, configuración especial, etc.)

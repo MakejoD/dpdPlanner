@@ -1,0 +1,365 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== AUTHENTICATION & AUTHORIZATION MODELS ==========
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  firstName    String
+  lastName     String
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  roleId       String
+  role         Role         @relation(fields: [roleId], references: [id])
+  departmentId String?
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  
+  // User assignments and reports
+  activityAssignments ActivityAssignment[]
+  progressReports     ProgressReport[]
+  approvedReports     ProgressReport[]     @relation("ApprovedBy")
+  
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  users           User[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id       String @id @default(uuid())
+  action   String // create, read, update, delete, approve, etc.
+  resource String // user, role, strategic_axis, objective, etc.
+  
+  // Composite unique constraint
+  @@unique([action, resource])
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ========== ORGANIZATIONAL STRUCTURE ==========
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  code        String?  @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Hierarchical structure
+  parentId String?
+  parent   Department?  @relation("DepartmentHierarchy", fields: [parentId], references: [id])
+  children Department[] @relation("DepartmentHierarchy")
+
+  // Relations
+  users               User[]
+  strategicAxes       StrategicAxis[]
+  activityAssignments ActivityAssignment[]
+
+  @@map("departments")
+}
+
+// ========== POA PLANNING STRUCTURE ==========
+
+model StrategicAxis {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  code        String   @unique
+  year        Int
+  isActive    Boolean  @default(true)
+  isLocked    Boolean  @default(false) // Para bloquear modificaciones una vez aprobado
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  objectives   Objective[]
+  indicators   Indicator[]
+
+  @@unique([code, year])
+  @@map("strategic_axes")
+}
+
+model Objective {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  code        String
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  strategicAxisId String
+  strategicAxis   StrategicAxis @relation(fields: [strategicAxisId], references: [id], onDelete: Cascade)
+  products        Product[]
+  indicators      Indicator[]
+
+  @@unique([strategicAxisId, code])
+  @@map("objectives")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  code        String
+  type        ProductType @default(PRODUCT) // PRODUCT or SERVICE
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  objectiveId String
+  objective   Objective   @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  activities  Activity[]
+  indicators  Indicator[]
+
+  @@unique([objectiveId, code])
+  @@map("products")
+}
+
+model Activity {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  code        String
+  startDate   DateTime?
+  endDate     DateTime?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  productId           String
+  product             Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  indicators          Indicator[]
+  assignments         ActivityAssignment[]
+  budgetExecutions    BudgetExecution[]
+
+  @@unique([productId, code])
+  @@map("activities")
+}
+
+// ========== PERFORMANCE INDICATORS ==========
+
+model Indicator {
+  id                String        @id @default(uuid())
+  name              String
+  description       String?
+  type              IndicatorType @default(PRODUCT) // PRODUCT or RESULT
+  measurementUnit   String
+  baseline          Float?        @default(0)
+  annualTarget      Float
+  q1Target          Float?        @default(0)
+  q2Target          Float?        @default(0)
+  q3Target          Float?        @default(0)
+  q4Target          Float?        @default(0)
+  isActive          Boolean       @default(true)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  // Polymorphic relations - an indicator can belong to different levels
+  strategicAxisId String?
+  strategicAxis   StrategicAxis? @relation(fields: [strategicAxisId], references: [id], onDelete: Cascade)
+  
+  objectiveId String?
+  objective   Objective? @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  // Relations
+  progressReports ProgressReport[]
+
+  @@map("indicators")
+}
+
+// ========== PROGRESS TRACKING ==========
+
+model ProgressReport {
+  id                 String            @id @default(uuid())
+  reportingPeriod    ReportingPeriod
+  year               Int
+  quarter            Int?              // 1, 2, 3, 4 (for quarterly reports)
+  month              Int?              // 1-12 (for monthly reports)
+  achievedValue      Float
+  executionPercent   Float
+  qualitativeComment String?
+  status             ReportStatus      @default(DRAFT)
+  submittedAt        DateTime?
+  approvedAt         DateTime?
+  rejectedAt         DateTime?
+  rejectionReason    String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  // Relations
+  indicatorId String
+  indicator   Indicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+  
+  reportedById String
+  reportedBy   User @relation(fields: [reportedById], references: [id])
+  
+  approvedById String?
+  approvedBy   User? @relation("ApprovedBy", fields: [approvedById], references: [id])
+
+  // File attachments
+  attachments ProgressAttachment[]
+
+  @@unique([indicatorId, reportingPeriod, year, quarter, month])
+  @@map("progress_reports")
+}
+
+model ProgressAttachment {
+  id             String   @id @default(uuid())
+  fileName       String
+  originalName   String
+  filePath       String
+  fileSize       Int
+  mimeType       String
+  uploadedAt     DateTime @default(now())
+
+  // Relations
+  progressReportId String
+  progressReport   ProgressReport @relation(fields: [progressReportId], references: [id], onDelete: Cascade)
+
+  @@map("progress_attachments")
+}
+
+// ========== BUDGET EXECUTION ==========
+
+model BudgetItem {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  category    String?  // Categoría presupuestaria
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  budgetExecutions BudgetExecution[]
+
+  @@map("budget_items")
+}
+
+model BudgetExecution {
+  id                 String   @id @default(uuid())
+  year               Int
+  assignedAmount     Float    @default(0)
+  committedAmount    Float    @default(0)
+  accruedAmount      Float    @default(0)
+  paidAmount         Float    @default(0)
+  executionPercent   Float    @default(0) // Calculated field
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  budgetItemId String
+  budgetItem   BudgetItem @relation(fields: [budgetItemId], references: [id])
+
+  @@unique([activityId, budgetItemId, year])
+  @@map("budget_executions")
+}
+
+// ========== ACTIVITY ASSIGNMENTS ==========
+
+model ActivityAssignment {
+  id         String   @id @default(uuid())
+  isMain     Boolean  @default(false) // Responsable principal
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  @@unique([userId, activityId])
+  @@map("activity_assignments")
+}
+
+// ========== ENUMS ==========
+
+enum ProductType {
+  PRODUCT
+  SERVICE
+}
+
+enum IndicatorType {
+  PRODUCT
+  RESULT
+}
+
+enum ReportingPeriod {
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}

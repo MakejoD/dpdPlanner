@@ -6,6 +6,7 @@ import { useAuth } from './contexts/AuthContext'
 import LoadingScreen from './components/common/LoadingScreen'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardLayout from './components/layout/DashboardLayout'
+import TestLogin from './TestLogin'
 
 // Pages
 import Dashboard from './pages/dashboard/Dashboard'
@@ -69,6 +70,9 @@ function App() {
             </PublicRoute>
           } 
         />
+        
+        {/* Test route */}
+        <Route path="/test" element={<TestLogin />} />
 
         {/* Rutas protegidas */}
         <Route 

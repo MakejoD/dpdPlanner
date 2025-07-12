@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -149,7 +149,7 @@ model Product {
   name        String
   description String?
   code        String
-  type        ProductType @default(PRODUCT) // PRODUCT or SERVICE
+  type        String @default("PRODUCT") // PRODUCT or SERVICE
   order       Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -194,7 +194,7 @@ model Indicator {
   id                String        @id @default(uuid())
   name              String
   description       String?
-  type              IndicatorType @default(PRODUCT) // PRODUCT or RESULT
+  type              String @default("PRODUCT") // PRODUCT or RESULT
   measurementUnit   String
   baseline          Float?        @default(0)
   annualTarget      Float
@@ -229,14 +229,14 @@ model Indicator {
 
 model ProgressReport {
   id                 String            @id @default(uuid())
-  reportingPeriod    ReportingPeriod
+  reportingPeriod    String // MONTHLY, QUARTERLY, ANNUAL
   year               Int
   quarter            Int?              // 1, 2, 3, 4 (for quarterly reports)
   month              Int?              // 1-12 (for monthly reports)
   achievedValue      Float
   executionPercent   Float
   qualitativeComment String?
-  status             ReportStatus      @default(DRAFT)
+  status             String @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED
   submittedAt        DateTime?
   approvedAt         DateTime?
   rejectedAt         DateTime?
@@ -339,27 +339,9 @@ model ActivityAssignment {
   @@map("activity_assignments")
 }
 
-// ========== ENUMS ==========
+// ========== ENUMS replaced with strings for SQLite compatibility ==========
 
-enum ProductType {
-  PRODUCT
-  SERVICE
-}
-
-enum IndicatorType {
-  PRODUCT
-  RESULT
-}
-
-enum ReportingPeriod {
-  MONTHLY
-  QUARTERLY
-  ANNUAL
-}
-
-enum ReportStatus {
-  DRAFT
-  SUBMITTED
-  APPROVED
-  REJECTED
-}
+// ProductType: PRODUCT, SERVICE
+// IndicatorType: PRODUCT, RESULT  
+// ReportingPeriod: MONTHLY, QUARTERLY, ANNUAL
+// ReportStatus: DRAFT, SUBMITTED, APPROVED, REJECTED

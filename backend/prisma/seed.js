@@ -81,10 +81,19 @@ async function main() {
       { action: 'export', resource: 'report' }
     ];
 
-    await prisma.permission.createMany({
-      data: permissions,
-      skipDuplicates: true
-    });
+    // Crear permisos uno por uno para SQLite
+    for (const permission of permissions) {
+      await prisma.permission.upsert({
+        where: {
+          action_resource: {
+            action: permission.action,
+            resource: permission.resource
+          }
+        },
+        update: {},
+        create: permission
+      });
+    }
 
     // 2. Crear roles del sistema
     console.log('👥 Creando roles del sistema...');

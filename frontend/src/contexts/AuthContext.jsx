@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import toast from 'react-hot-toast'
+import { api, httpClient } from '../utils/api'
 
 // Estado inicial
 const initialState = {
@@ -78,19 +79,14 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true })
       
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ email, password })
-      })
-
-      const data = await response.json()
+      const response = await httpClient.post(api.auth.login, { email, password })
 
       if (!response.ok) {
-        throw new Error(data.message || 'Error en la autenticación')
+        const errorData = await response.json()
+        throw new Error(errorData.message || errorData.error || 'Error en la autenticación')
       }
+
+      const data = await response.json()
 
       // Guardar token en localStorage
       localStorage.setItem('token', data.token)
@@ -108,9 +104,13 @@ export const AuthProvider = ({ children }) => {
       return { success: true }
       
     } catch (error) {
+      console.error('Login error:', error)
       dispatch({ type: 'AUTH_ERROR' })
-      toast.error(error.message || 'Error al iniciar sesión')
-      return { success: false, error: error.message }
+      const errorMessage = error.message || 'Error al iniciar sesión'
+      toast.error(errorMessage)
+      return { success: false, error: errorMessage }
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false })
     }
   }
 
@@ -119,13 +119,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Llamar al endpoint de logout si hay token
       if (state.token) {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${state.token}`,
-            'Content-Type': 'application/json'
-          }
-        })
+        await httpClient.post(api.auth.logout)
       }
     } catch (error) {
       console.error('Error al cerrar sesión:', error)
@@ -165,12 +159,7 @@ export const AuthProvider = ({ children }) => {
         return
       }
 
-      const response = await fetch(`/api/users/${state.user?.id || 'me'}`, {
-        headers: {
-          'Authorization': `Bearer ${state.token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await httpClient.get(api.users.profile(state.user?.id))
 
       if (!response.ok) {
         throw new Error('Error al obtener el perfil del usuario')
@@ -197,13 +186,7 @@ export const AuthProvider = ({ children }) => {
         return false
       }
 
-      const response = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${state.token}`,
-          'Content-Type': 'application/json'
-        }
-      })
+      const response = await httpClient.post(api.auth.refresh)
 
       if (!response.ok) {
         throw new Error('Error al renovar el token')
@@ -235,29 +218,9 @@ export const AuthProvider = ({ children }) => {
         return
       }
 
-      try {
-        // Hacer una petición para verificar el token
-        const response = await fetch('/api/auth/refresh', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          localStorage.setItem('token', data.token)
-          
-          // Obtener datos del usuario
-          await getCurrentUser()
-        } else {
-          throw new Error('Token inválido')
-        }
-      } catch (error) {
-        console.error('Error al verificar token:', error)
-        dispatch({ type: 'AUTH_ERROR' })
-      }
+      // Por ahora solo verificamos que existe el token
+      // TODO: Implementar verificación completa cuando el backend esté listo
+      dispatch({ type: 'SET_LOADING', payload: false })
     }
 
     verifyToken()

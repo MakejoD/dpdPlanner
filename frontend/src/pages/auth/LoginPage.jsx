@@ -10,14 +10,21 @@ import {
   InputAdornment,
   IconButton,
   Paper,
-  Container
+  Container,
+  Collapse,
+  Grid,
+  Chip
 } from '@mui/material'
 import {
   Email as EmailIcon,
   Lock as LockIcon,
   Visibility,
   VisibilityOff,
-  AccountBalance as GovernmentIcon
+  AccountBalance as GovernmentIcon,
+  ExpandMore as ExpandMoreIcon,
+  Person as PersonIcon,
+  SupervisorAccount as SupervisorIcon,
+  Engineering as EngineeringIcon
 } from '@mui/icons-material'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -30,6 +37,38 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showQuickLogin, setShowQuickLogin] = useState(false)
+
+  // Datos de usuarios de prueba
+  const quickLoginUsers = [
+    {
+      name: 'Administrador',
+      email: 'admin@poa.gov',
+      password: 'admin123',
+      role: 'Administrador del Sistema',
+      icon: <SupervisorIcon />,
+      color: '#d32f2f',
+      description: 'Acceso completo al sistema'
+    },
+    {
+      name: 'Director de Planificación',
+      email: 'planificacion@poa.gov',
+      password: '123456',
+      role: 'Director de Planificación',
+      icon: <PersonIcon />,
+      color: '#1976d2',
+      description: 'Formulación y seguimiento del POA'
+    },
+    {
+      name: 'Técnico',
+      email: 'tecnico@poa.gov',
+      password: '123456',
+      role: 'Técnico Registrador',
+      icon: <EngineeringIcon />,
+      color: '#388e3c',
+      description: 'Registro de avances y actividades'
+    }
+  ]
 
   const handleChange = (e) => {
     setFormData({
@@ -62,15 +101,34 @@ const LoginPage = () => {
     setShowPassword(!showPassword)
   }
 
+  const handleQuickLogin = async (user) => {
+    setLoading(true)
+    setError('')
+    
+    try {
+      const result = await login(user.email, user.password)
+      
+      if (!result.success) {
+        setError(result.error || 'Error al iniciar sesión')
+      }
+    } catch (err) {
+      setError('Error de conexión. Verifique su conexión a internet.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <Box
       sx={{
         minHeight: '100vh',
+        width: '100vw',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        position: 'relative'
+        position: 'relative',
+        padding: 2
       }}
     >
       {/* Decorative background elements */}
@@ -86,14 +144,15 @@ const LoginPage = () => {
         }}
       />
 
-      <Container maxWidth="sm">
+      <Container maxWidth="sm" sx={{ width: '100%', maxWidth: { xs: '100%', sm: '500px' } }}>
         <Paper
           elevation={24}
           sx={{
-            p: 4,
+            p: { xs: 3, sm: 4 },
             borderRadius: 3,
             background: 'rgba(255, 255, 255, 0.95)',
-            backdropFilter: 'blur(10px)'
+            backdropFilter: 'blur(10px)',
+            width: '100%'
           }}
         >
           {/* Header */}
@@ -222,19 +281,90 @@ const LoginPage = () => {
             </CardContent>
           </Card>
 
-          {/* Demo Credentials */}
+          {/* Quick Login Section */}
+          <Box sx={{ mt: 3 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => setShowQuickLogin(!showQuickLogin)}
+              endIcon={<ExpandMoreIcon sx={{ 
+                transform: showQuickLogin ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.3s'
+              }} />}
+              sx={{ mb: 2 }}
+            >
+              Login Rápido - Usuarios de Demostración
+            </Button>
+            
+            <Collapse in={showQuickLogin}>
+              <Grid container spacing={2}>
+                {quickLoginUsers.map((user, index) => (
+                  <Grid item xs={12} sm={4} key={index}>
+                    <Card 
+                      sx={{ 
+                        cursor: 'pointer',
+                        transition: 'all 0.3s',
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: 4
+                        },
+                        border: '2px solid transparent',
+                        '&:hover': {
+                          borderColor: user.color
+                        }
+                      }}
+                      onClick={() => handleQuickLogin(user)}
+                    >
+                      <CardContent sx={{ textAlign: 'center', p: 2 }}>
+                        <Box
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 50,
+                            height: 50,
+                            borderRadius: '50%',
+                            backgroundColor: user.color,
+                            color: 'white',
+                            mb: 1
+                          }}
+                        >
+                          {user.icon}
+                        </Box>
+                        <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 0.5 }}>
+                          {user.name}
+                        </Typography>
+                        <Chip 
+                          label={user.role} 
+                          size="small" 
+                          sx={{ 
+                            backgroundColor: `${user.color}20`,
+                            color: user.color,
+                            mb: 1,
+                            fontSize: '0.75rem'
+                          }} 
+                        />
+                        <Typography variant="caption" display="block" color="text.secondary">
+                          {user.description}
+                        </Typography>
+                        <Typography variant="caption" display="block" sx={{ mt: 1, fontWeight: 500 }}>
+                          {user.email}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            </Collapse>
+          </Box>
+
+          {/* Demo Credentials - Simplified */}
           <Box sx={{ mt: 3, p: 2, backgroundColor: 'info.lighter', borderRadius: 2 }}>
             <Typography variant="caption" display="block" gutterBottom sx={{ fontWeight: 600 }}>
-              Credenciales de demostración:
+              💡 Consejo: Use el "Login Rápido" arriba o ingrese manualmente:
             </Typography>
             <Typography variant="caption" display="block">
-              <strong>Administrador:</strong> admin@poa.gov / admin123456
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>Director Planificación:</strong> planificacion@poa.gov / planning123
-            </Typography>
-            <Typography variant="caption" display="block">
-              <strong>Técnico:</strong> tecnico@poa.gov / tecnico123
+              <strong>Admin:</strong> admin@poa.gov / admin123
             </Typography>
           </Box>
         </Paper>

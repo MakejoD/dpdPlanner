@@ -9,14 +9,14 @@ const userRoutes = require('./routes/users');
 const roleRoutes = require('./routes/roles');
 const permissionRoutes = require('./routes/permissions');
 const departmentRoutes = require('./routes/departments');
-const strategicAxisRoutes = require('./routes/strategicAxes');
-const objectiveRoutes = require('./routes/objectives');
-const productRoutes = require('./routes/products');
-const activityRoutes = require('./routes/activities');
-const indicatorRoutes = require('./routes/indicators');
-const progressReportRoutes = require('./routes/progressReports');
-const budgetRoutes = require('./routes/budget');
-const dashboardRoutes = require('./routes/dashboard');
+// const strategicAxisRoutes = require('./routes/strategicAxes');
+// const objectiveRoutes = require('./routes/objectives');
+// const productRoutes = require('./routes/products');
+// const activityRoutes = require('./routes/activities');
+// const indicatorRoutes = require('./routes/indicators');
+// const progressReportRoutes = require('./routes/progressReports');
+// const budgetRoutes = require('./routes/budget');
+// const dashboardRoutes = require('./routes/dashboard');
 
 const errorHandler = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
@@ -27,7 +27,10 @@ const PORT = process.env.PORT || 3001;
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173', 
+    'http://localhost:5174'
+  ],
   credentials: true
 }));
 
@@ -55,14 +58,14 @@ app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/permissions', permissionRoutes);
 app.use('/api/departments', departmentRoutes);
-app.use('/api/strategic-axes', strategicAxisRoutes);
-app.use('/api/objectives', objectiveRoutes);
-app.use('/api/products', productRoutes);
-app.use('/api/activities', activityRoutes);
-app.use('/api/indicators', indicatorRoutes);
-app.use('/api/progress-reports', progressReportRoutes);
-app.use('/api/budget', budgetRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+// app.use('/api/strategic-axes', strategicAxisRoutes);
+// app.use('/api/objectives', objectiveRoutes);
+// app.use('/api/products', productRoutes);
+// app.use('/api/activities', activityRoutes);
+// app.use('/api/indicators', indicatorRoutes);
+// app.use('/api/progress-reports', progressReportRoutes);
+// app.use('/api/budget', budgetRoutes);
+// app.use('/api/dashboard', dashboardRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

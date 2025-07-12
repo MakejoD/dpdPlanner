@@ -21,10 +21,12 @@ import {
   Business as BusinessIcon,
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
-  Visibility as ViewIcon
+  Visibility as ViewIcon,
+  TrackChanges as TargetIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import StrategicAxesManagement from './StrategicAxesManagement';
+import ObjectiveManagement from './ObjectiveManagement';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -66,9 +68,9 @@ const StrategicPlanning = () => {
       id: 'objectives',
       title: 'Objetivos',
       description: 'Define objetivos específicos por cada eje estratégico',
-      icon: <AssignmentIcon />,
-      status: 'pending',
-      progress: 0,
+      icon: <TargetIcon />,
+      status: 'active',
+      progress: 100,
       color: 'secondary'
     },
     {
@@ -192,6 +194,8 @@ const StrategicPlanning = () => {
                       e.stopPropagation();
                       if (module.id === 'strategic-axes') {
                         setActiveTab(0);
+                      } else if (module.id === 'objectives') {
+                        setActiveTab(1);
                       }
                     }}
                   >
@@ -213,7 +217,7 @@ const StrategicPlanning = () => {
           scrollButtons="auto"
         >
           <Tab label="🎯 Ejes Estratégicos" />
-          <Tab label="📊 Objetivos" disabled />
+          <Tab label="📊 Objetivos" />
           <Tab label="🎁 Productos/Servicios" disabled />
           <Tab label="⚙️ Actividades" disabled />
           <Tab label="📈 Indicadores" disabled />
@@ -224,14 +228,7 @@ const StrategicPlanning = () => {
         </TabPanel>
         
         <TabPanel value={activeTab} index={1}>
-          <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Typography variant="h6" color="text.secondary">
-              📊 Gestión de Objetivos
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Esta funcionalidad estará disponible una vez completada la gestión de ejes estratégicos
-            </Typography>
-          </Box>
+          <ObjectiveManagement />
         </TabPanel>
         
         <TabPanel value={activeTab} index={2}>

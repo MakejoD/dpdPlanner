@@ -304,12 +304,10 @@ const LoginPage = () => {
                       sx={{ 
                         cursor: 'pointer',
                         transition: 'all 0.3s',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: 4
-                        },
                         border: '2px solid transparent',
                         '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: 4,
                           borderColor: user.color
                         }
                       }}

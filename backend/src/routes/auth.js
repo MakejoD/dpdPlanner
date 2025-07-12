@@ -192,4 +192,95 @@ router.post('/logout', (req, res) => {
   });
 });
 
+/**
+ * @route   GET /api/auth/me
+ * @desc    Obtener información del usuario autenticado
+ * @access  Private
+ */
+router.get('/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        error: 'Token requerido',
+        message: 'No se proporcionó token de autorización'
+      });
+    }
+
+    const token = authHeader.substring(7);
+    
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        include: {
+          role: {
+            include: {
+              rolePermissions: {
+                include: {
+                  permission: true
+                }
+              }
+            }
+          },
+          department: true
+        }
+      });
+
+      if (!user || !user.isActive) {
+        return res.status(401).json({
+          error: 'Usuario no válido',
+          message: 'El usuario no existe o está inactivo'
+        });
+      }
+
+      // Formatear permisos
+      const permissions = user.role.rolePermissions.map(rp => ({
+        id: rp.permission.id,
+        name: rp.permission.name,
+        action: rp.permission.action,
+        resource: rp.permission.resource
+      }));
+
+      // Preparar respuesta sin contraseña
+      const userData = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        role: {
+          id: user.role.id,
+          name: user.role.name,
+          description: user.role.description
+        },
+        department: user.department ? {
+          id: user.department.id,
+          name: user.department.name,
+          code: user.department.code
+        } : null,
+        permissions
+      };
+
+      res.json(userData);
+
+    } catch (jwtError) {
+      return res.status(401).json({
+        error: 'Token inválido',
+        message: 'El token proporcionado no es válido'
+      });
+    }
+
+  } catch (error) {
+    logger.error('Error en /me:', error);
+    res.status(500).json({
+      error: 'Error interno del servidor',
+      message: 'Error al obtener información del usuario'
+    });
+  }
+});
+
 module.exports = router;

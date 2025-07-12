@@ -1,0 +1,548 @@
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Alert,
+  Chip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Grid,
+  FormControlLabel,
+  Switch
+} from '@mui/material';
+import {
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  ExpandMore as ExpandMoreIcon,
+  TrackChanges as TargetIcon
+} from '@mui/icons-material';
+
+const ObjectiveManagement = () => {
+  const [objectives, setObjectives] = useState([]);
+  const [strategicAxes, setStrategicAxes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editingObjective, setEditingObjective] = useState(null);
+  const [selectedAxisId, setSelectedAxisId] = useState('');
+  const [groupByAxis, setGroupByAxis] = useState(true);
+
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    code: '',
+    strategicAxisId: '',
+    order: 0
+  });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Cargar ejes estratégicos
+      const axesResponse = await fetch('http://localhost:3001/api/strategic-axes', { headers });
+      const axesData = await axesResponse.json();
+      setStrategicAxes(axesData);
+
+      // Cargar objetivos
+      const objectivesResponse = await fetch('http://localhost:3001/api/objectives', { headers });
+      const objectivesData = await objectivesResponse.json();
+      setObjectives(objectivesData);
+
+      setError('');
+    } catch (err) {
+      setError('Error al cargar los datos: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenDialog = (objective = null) => {
+    if (objective) {
+      setFormData({
+        name: objective.name,
+        description: objective.description,
+        code: objective.code,
+        strategicAxisId: objective.strategicAxisId,
+        order: objective.order
+      });
+      setEditingObjective(objective);
+    } else {
+      setFormData({
+        name: '',
+        description: '',
+        code: '',
+        strategicAxisId: selectedAxisId || '',
+        order: 0
+      });
+      setEditingObjective(null);
+    }
+    setOpenDialog(true);
+  };
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setEditingObjective(null);
+    setFormData({
+      name: '',
+      description: '',
+      code: '',
+      strategicAxisId: '',
+      order: 0
+    });
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      const method = editingObjective ? 'PUT' : 'POST';
+      const url = editingObjective 
+        ? `http://localhost:3001/api/objectives/${editingObjective.id}`
+        : 'http://localhost:3001/api/objectives';
+
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al guardar el objetivo');
+      }
+
+      setSuccess(editingObjective ? 'Objetivo actualizado exitosamente' : 'Objetivo creado exitosamente');
+      handleCloseDialog();
+      loadData();
+    } catch (err) {
+      setError('Error al guardar: ' + err.message);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Está seguro de que desea eliminar este objetivo?')) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3001/api/objectives/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el objetivo');
+      }
+
+      setSuccess('Objetivo eliminado exitosamente');
+      loadData();
+    } catch (err) {
+      setError('Error al eliminar: ' + err.message);
+    }
+  };
+
+  const getFilteredObjectives = () => {
+    if (selectedAxisId) {
+      return objectives.filter(obj => obj.strategicAxisId === selectedAxisId);
+    }
+    return objectives;
+  };
+
+  const getObjectivesByAxis = () => {
+    const grouped = {};
+    strategicAxes.forEach(axis => {
+      grouped[axis.id] = {
+        axis: axis,
+        objectives: objectives.filter(obj => obj.strategicAxisId === axis.id)
+      };
+    });
+    return grouped;
+  };
+
+  const generateCode = (axisCode) => {
+    const axisObjectives = objectives.filter(obj => 
+      obj.strategicAxis?.code === axisCode
+    );
+    const nextNumber = axisObjectives.length + 1;
+    return `OBJ-${axisCode.split('-')[1]}-${nextNumber.toString().padStart(2, '0')}`;
+  };
+
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Typography>Cargando objetivos...</Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <Box p={3}>
+      <Box display="flex" justifyContent="between" alignItems="center" mb={3}>
+        <Box display="flex" alignItems="center" gap={2}>
+          <TargetIcon color="primary" fontSize="large" />
+          <Typography variant="h4" component="h1">
+            Gestión de Objetivos Estratégicos
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog()}
+          sx={{ ml: 'auto' }}
+        >
+          Agregar Objetivo
+        </Button>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess('')}>
+          {success}
+        </Alert>
+      )}
+
+      {/* Controles */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} md={4}>
+              <FormControl fullWidth>
+                <InputLabel>Filtrar por Eje Estratégico</InputLabel>
+                <Select
+                  value={selectedAxisId}
+                  onChange={(e) => setSelectedAxisId(e.target.value)}
+                  label="Filtrar por Eje Estratégico"
+                >
+                  <MenuItem value="">Todos los ejes</MenuItem>
+                  {strategicAxes.map((axis) => (
+                    <MenuItem key={axis.id} value={axis.id}>
+                      {axis.code} - {axis.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={groupByAxis}
+                    onChange={(e) => setGroupByAxis(e.target.checked)}
+                  />
+                }
+                label="Agrupar por Eje Estratégico"
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
+
+      {/* Lista de Objetivos */}
+      {groupByAxis ? (
+        // Vista agrupada por eje estratégico
+        <Box>
+          {Object.entries(getObjectivesByAxis()).map(([axisId, group]) => (
+            <Accordion key={axisId} defaultExpanded>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <Box display="flex" alignItems="center" gap={2} width="100%">
+                  <Chip label={group.axis.code} color="primary" />
+                  <Typography variant="h6">
+                    {group.axis.name}
+                  </Typography>
+                  <Chip 
+                    label={`${group.objectives.length} objetivos`} 
+                    size="small" 
+                    variant="outlined"
+                    sx={{ ml: 'auto' }}
+                  />
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                <TableContainer component={Paper}>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Código</TableCell>
+                        <TableCell>Nombre</TableCell>
+                        <TableCell>Descripción</TableCell>
+                        <TableCell>Productos</TableCell>
+                        <TableCell>Indicadores</TableCell>
+                        <TableCell align="center">Acciones</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {group.objectives.map((objective) => (
+                        <TableRow key={objective.id}>
+                          <TableCell>
+                            <Chip label={objective.code} size="small" />
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="subtitle2">
+                              {objective.name}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography variant="body2" sx={{ maxWidth: 300 }}>
+                              {objective.description}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip 
+                              label={objective._count.products} 
+                              size="small" 
+                              color="secondary"
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip 
+                              label={objective._count.indicators} 
+                              size="small" 
+                              color="info"
+                            />
+                          </TableCell>
+                          <TableCell align="center">
+                            <IconButton
+                              onClick={() => handleOpenDialog(objective)}
+                              color="primary"
+                            >
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton
+                              onClick={() => handleDelete(objective.id)}
+                              color="error"
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {group.objectives.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} align="center">
+                            <Typography color="textSecondary">
+                              No hay objetivos definidos para este eje estratégico
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </Box>
+      ) : (
+        // Vista de tabla simple
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Código</TableCell>
+                <TableCell>Nombre</TableCell>
+                <TableCell>Descripción</TableCell>
+                <TableCell>Eje Estratégico</TableCell>
+                <TableCell>Productos</TableCell>
+                <TableCell>Indicadores</TableCell>
+                <TableCell align="center">Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {getFilteredObjectives().map((objective) => (
+                <TableRow key={objective.id}>
+                  <TableCell>
+                    <Chip label={objective.code} size="small" />
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="subtitle2">
+                      {objective.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ maxWidth: 300 }}>
+                      {objective.description}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Chip 
+                      label={`${objective.strategicAxis?.code} - ${objective.strategicAxis?.name}`}
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={objective._count.products} 
+                      size="small" 
+                      color="secondary"
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip 
+                      label={objective._count.indicators} 
+                      size="small" 
+                      color="info"
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton
+                      onClick={() => handleOpenDialog(objective)}
+                      color="primary"
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton
+                      onClick={() => handleDelete(objective.id)}
+                      color="error"
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {getFilteredObjectives().length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} align="center">
+                    <Typography color="textSecondary">
+                      No hay objetivos disponibles
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
+
+      {/* Dialog para crear/editar objetivo */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {editingObjective ? 'Editar Objetivo' : 'Crear Nuevo Objetivo'}
+        </DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Nombre del Objetivo"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Código"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                required
+                placeholder="Ej: OBJ-001-01"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Descripción"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                multiline
+                rows={3}
+                required
+              />
+            </Grid>
+            <Grid item xs={12} md={8}>
+              <FormControl fullWidth required>
+                <InputLabel>Eje Estratégico</InputLabel>
+                <Select
+                  value={formData.strategicAxisId}
+                  onChange={(e) => {
+                    const selectedAxis = strategicAxes.find(axis => axis.id === e.target.value);
+                    setFormData({ 
+                      ...formData, 
+                      strategicAxisId: e.target.value,
+                      code: selectedAxis ? generateCode(selectedAxis.code) : formData.code
+                    });
+                  }}
+                  label="Eje Estratégico"
+                >
+                  {strategicAxes.map((axis) => (
+                    <MenuItem key={axis.id} value={axis.id}>
+                      {axis.code} - {axis.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="Orden"
+                type="number"
+                value={formData.order}
+                onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancelar</Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            disabled={!formData.name || !formData.description || !formData.code || !formData.strategicAxisId}
+          >
+            {editingObjective ? 'Actualizar' : 'Crear'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default ObjectiveManagement;

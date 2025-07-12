@@ -27,6 +27,7 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import StrategicAxesManagement from './StrategicAxesManagement';
 import ObjectiveManagement from './ObjectiveManagement';
+import ProductManagement from './ProductManagement';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -218,7 +219,7 @@ const StrategicPlanning = () => {
         >
           <Tab label="🎯 Ejes Estratégicos" />
           <Tab label="📊 Objetivos" />
-          <Tab label="🎁 Productos/Servicios" disabled />
+          <Tab label="🎁 Productos/Servicios" />
           <Tab label="⚙️ Actividades" disabled />
           <Tab label="📈 Indicadores" disabled />
         </Tabs>
@@ -232,14 +233,7 @@ const StrategicPlanning = () => {
         </TabPanel>
         
         <TabPanel value={activeTab} index={2}>
-          <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Typography variant="h6" color="text.secondary">
-              🎁 Gestión de Productos/Servicios
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Esta funcionalidad estará disponible próximamente
-            </Typography>
-          </Box>
+          <ProductManagement />
         </TabPanel>
         
         <TabPanel value={activeTab} index={3}>

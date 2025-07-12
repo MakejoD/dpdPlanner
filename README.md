@@ -1,4 +1,8 @@
-# Sistema POA - Gestión y Seguimiento del Plan Operativo Anual
+# Si## 🏗️ Estado Actual - FASE 2 EN PROGRESO 🚀
+
+**Versión**: v1.1-fase2-dev  
+**Progreso**: 85% del sistema base + 30% planificación POA  
+**Estado**: ✅ FASE 1 completa + Backend Ejes Estratégicos funcional POA - Gestión y Seguimiento del Plan Operativo Anual
 
 Una aplicación web completa para la gestión y seguimiento del Plan Operativo Anual (POA) orientada al sector público, con sistema de permisos granular basado en roles (RBAC).
 
@@ -35,6 +39,13 @@ Una aplicación web completa para la gestión y seguimiento del Plan Operativo A
 - SQLite poblada con datos de prueba
 - 14 tablas con relaciones completas
 - Datos de ejemplo listos para uso
+
+#### 🎯 FASE 2: Planificación POA (EN PROGRESO)
+- ✅ **Backend Ejes Estratégicos**: API REST completa con CRUD
+- ✅ **Autenticación integrada**: JWT y permisos granulares
+- ✅ **Validaciones robustas**: Códigos únicos, años, departamentos
+- ✅ **Pruebas exitosas**: Todas las operaciones CRUD verificadas
+- 🔄 **Frontend en desarrollo**: Interfaz para gestión de ejes estratégicos
 
 ## �🏗️ Arquitectura del Sistema
 

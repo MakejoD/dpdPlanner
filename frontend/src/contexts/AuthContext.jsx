@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { api, httpClient } from '../utils/api'
+import httpClient from '../utils/api'
 
 // Estado inicial
 const initialState = {
@@ -79,14 +79,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true })
       
-      const response = await httpClient.post(api.auth.login, { email, password })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || errorData.error || 'Error en la autenticación')
-      }
-
-      const data = await response.json()
+      const data = await httpClient.post('/auth/login', { email, password })
 
       // Guardar token en localStorage
       localStorage.setItem('token', data.token)
@@ -119,7 +112,7 @@ export const AuthProvider = ({ children }) => {
     try {
       // Llamar al endpoint de logout si hay token
       if (state.token) {
-        await httpClient.post(api.auth.logout)
+        await httpClient.post('/auth/logout')
       }
     } catch (error) {
       console.error('Error al cerrar sesión:', error)
@@ -159,7 +152,7 @@ export const AuthProvider = ({ children }) => {
         return
       }
 
-      const response = await httpClient.get(api.users.profile(state.user?.id))
+      const response = await httpClient.get(`/users/${state.user?.id}/profile`)
 
       if (!response.ok) {
         throw new Error('Error al obtener el perfil del usuario')
@@ -186,7 +179,7 @@ export const AuthProvider = ({ children }) => {
         return false
       }
 
-      const response = await httpClient.post(api.auth.refresh)
+      const response = await httpClient.post('/auth/refresh')
 
       if (!response.ok) {
         throw new Error('Error al renovar el token')

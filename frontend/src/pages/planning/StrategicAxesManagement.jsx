@@ -260,12 +260,26 @@ const StrategicAxesManagement = () => {
     <Box sx={{ p: 3 }}>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          🎯 Gestión de Ejes Estratégicos
+        <Typography variant="h4" component="h1" gutterBottom display="flex" alignItems="center">
+          <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
+          Gestión de Ejes Estratégicos
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Administra los ejes estratégicos del Plan Operativo Anual
         </Typography>
+      </Box>
+
+      {/* Barra de herramientas */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box />
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => handleOpenDialog('create')}
+          sx={{ display: { xs: 'none', md: 'flex' } }}
+        >
+          Nuevo Eje Estratégico
+        </Button>
       </Box>
 
       {/* Alerts */}
@@ -400,17 +414,6 @@ const StrategicAxesManagement = () => {
               }
               label="Solo activos"
             />
-          </Grid>
-          
-          <Grid item xs={12} sm={6} md={3}>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => handleOpenDialog('create')}
-              fullWidth
-            >
-              Nuevo Eje
-            </Button>
           </Grid>
         </Grid>
       </Paper>
@@ -646,7 +649,7 @@ const StrategicAxesManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Floating Action Button for mobile */}
+      {/* FAB para crear nuevo eje estratégico - Solo móviles */}
       <Fab
         color="primary"
         aria-label="add"

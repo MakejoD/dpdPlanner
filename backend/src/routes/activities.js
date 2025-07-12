@@ -35,7 +35,8 @@ router.get('/',
     query('status').optional().isIn(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).withMessage('status debe ser válido'),
     query('isActive').optional().isBoolean().withMessage('isActive debe ser un booleano'),
     query('startDate').optional().isISO8601().withMessage('startDate debe ser una fecha válida'),
-    query('endDate').optional().isISO8601().withMessage('endDate debe ser una fecha válida')
+    query('endDate').optional().isISO8601().withMessage('endDate debe ser una fecha válida'),
+    query('search').optional().isString().withMessage('search debe ser un string')
   ],
   handleValidationErrors,
   async (req, res) => {
@@ -48,6 +49,7 @@ router.get('/',
         isActive,
         startDate,
         endDate,
+        search,
         page = 1,
         limit = 50 
       } = req.query;
@@ -704,6 +706,273 @@ router.post('/:id/assign',
       res.status(500).json({
         error: 'Error interno del servidor',
         message: 'No se pudo asignar el usuario'
+      });
+    }
+  }
+);
+
+/**
+ * @route   PUT /api/activities/:id/assignments/:assignmentId/status
+ * @desc    Actualizar el estado de una asignación específica
+ * @access  Private (requires update:activity permission)
+ */
+router.put('/:id/assignments/:assignmentId/status',
+  authenticateToken,
+  authorize('update', 'activity'),
+  [
+    body('status')
+      .isIn(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
+      .withMessage('Status debe ser uno de: NOT_STARTED, IN_PROGRESS, COMPLETED, CANCELLED'),
+    body('progress')
+      .optional()
+      .isFloat({ min: 0, max: 100 })
+      .withMessage('Progress debe estar entre 0 y 100'),
+    body('comments')
+      .optional()
+      .isString()
+      .withMessage('Comments debe ser un string')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { id, assignmentId } = req.params;
+      const { status, progress, comments } = req.body;
+
+      // Verificar que la actividad existe
+      const activity = await prisma.activity.findUnique({
+        where: { id },
+        include: {
+          assignments: {
+            where: { id: assignmentId }
+          }
+        }
+      });
+
+      if (!activity) {
+        return res.status(404).json({
+          error: 'Actividad no encontrada'
+        });
+      }
+
+      if (activity.assignments.length === 0) {
+        return res.status(404).json({
+          error: 'Asignación no encontrada'
+        });
+      }
+
+      // Actualizar la asignación
+      const updatedAssignment = await prisma.activityAssignment.update({
+        where: { id: assignmentId },
+        data: {
+          status,
+          progress: progress || null,
+          comments,
+          updatedAt: new Date()
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true
+            }
+          },
+          activity: {
+            select: {
+              id: true,
+              name: true,
+              code: true
+            }
+          }
+        }
+      });
+
+      // Calcular el progreso general de la actividad
+      const allAssignments = await prisma.activityAssignment.findMany({
+        where: { activityId: id },
+        select: { progress: true, status: true }
+      });
+
+      const totalProgress = allAssignments.reduce((sum, assignment) => {
+        return sum + (assignment.progress || 0);
+      }, 0);
+
+      const averageProgress = allAssignments.length > 0 ? totalProgress / allAssignments.length : 0;
+
+      // Actualizar el progreso de la actividad
+      await prisma.activity.update({
+        where: { id },
+        data: {
+          progress: Math.round(averageProgress)
+        }
+      });
+
+      logger.info(`Estado de asignación actualizado: ${assignmentId} a ${status}`);
+
+      res.json({
+        message: 'Estado de asignación actualizado exitosamente',
+        data: updatedAssignment,
+        activityProgress: Math.round(averageProgress)
+      });
+
+    } catch (error) {
+      logger.error('Error al actualizar estado de asignación:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No se pudo actualizar el estado de la asignación'
+      });
+    }
+  }
+);
+
+/**
+ * @route   DELETE /api/activities/:id/assignments/:assignmentId
+ * @desc    Remover una asignación de actividad
+ * @access  Private (requires update:activity permission)
+ */
+router.delete('/:id/assignments/:assignmentId',
+  authenticateToken,
+  authorize('update', 'activity'),
+  async (req, res) => {
+    try {
+      const { id, assignmentId } = req.params;
+
+      // Verificar que la actividad existe
+      const activity = await prisma.activity.findUnique({
+        where: { id },
+        include: {
+          assignments: {
+            where: { id: assignmentId }
+          }
+        }
+      });
+
+      if (!activity) {
+        return res.status(404).json({
+          error: 'Actividad no encontrada'
+        });
+      }
+
+      if (activity.assignments.length === 0) {
+        return res.status(404).json({
+          error: 'Asignación no encontrada'
+        });
+      }
+
+      // Eliminar la asignación
+      await prisma.activityAssignment.delete({
+        where: { id: assignmentId }
+      });
+
+      logger.info(`Asignación eliminada: ${assignmentId} de actividad ${id}`);
+
+      res.json({
+        message: 'Asignación eliminada exitosamente'
+      });
+
+    } catch (error) {
+      logger.error('Error al eliminar asignación:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No se pudo eliminar la asignación'
+      });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/activities/:id/statistics
+ * @desc    Obtener estadísticas de una actividad específica
+ * @access  Private (requires read:activity permission)
+ */
+router.get('/:id/statistics',
+  authenticateToken,
+  authorize('read', 'activity'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const activity = await prisma.activity.findUnique({
+        where: { id },
+        include: {
+          assignments: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true
+                }
+              }
+            }
+          },            indicators: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+                annualTarget: true,
+                baseline: true
+              }
+            },
+          _count: {
+            select: {
+              assignments: true,
+              indicators: true,
+              budgetExecutions: true
+            }
+          }
+        }
+      });
+
+      if (!activity) {
+        return res.status(404).json({
+          error: 'Actividad no encontrada'
+        });
+      }
+
+      // Calcular estadísticas de asignaciones
+      const assignmentStats = {
+        total: activity.assignments.length,
+        byStatus: {
+          NOT_STARTED: activity.assignments.filter(a => a.status === 'NOT_STARTED').length,
+          IN_PROGRESS: activity.assignments.filter(a => a.status === 'IN_PROGRESS').length,
+          COMPLETED: activity.assignments.filter(a => a.status === 'COMPLETED').length,
+          CANCELLED: activity.assignments.filter(a => a.status === 'CANCELLED').length
+        },
+        averageProgress: activity.assignments.length > 0 
+          ? Math.round(activity.assignments.reduce((sum, a) => sum + (a.progress || 0), 0) / activity.assignments.length)
+          : 0
+      };
+
+      // Calcular estadísticas de indicadores
+      const indicatorStats = {
+        total: activity.indicators.length,
+        withTargets: activity.indicators.filter(i => i.annualTarget !== null).length,
+        withBaseline: activity.indicators.filter(i => i.baseline !== null).length,
+        averageProgress: 0 // Los valores actuales vienen de ProgressReport, no implementado aquí aún
+      };
+
+      res.json({
+        activity: {
+          id: activity.id,
+          name: activity.name,
+          code: activity.code,
+          progress: activity.progress,
+          startDate: activity.startDate,
+          endDate: activity.endDate,
+          status: activity.status
+        },
+        assignments: assignmentStats,
+        indicators: indicatorStats,
+        counts: activity._count
+      });
+
+    } catch (error) {
+      logger.error('Error al obtener estadísticas de actividad:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No se pudieron obtener las estadísticas'
       });
     }
   }

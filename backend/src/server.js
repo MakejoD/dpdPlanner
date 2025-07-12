@@ -13,7 +13,8 @@ const strategicAxisRoutes = require('./routes/strategicAxes');
 const objectiveRoutes = require('./routes/objectives');
 const productRoutes = require('./routes/products');
 const activityRoutes = require('./routes/activities');
-// const indicatorRoutes = require('./routes/indicators');
+const indicatorRoutes = require('./routes/indicators');
+// const progressReportRoutes = require('./routes/progressReports');
 // const progressReportRoutes = require('./routes/progressReports');
 // const budgetRoutes = require('./routes/budget');
 // const dashboardRoutes = require('./routes/dashboard');
@@ -29,21 +30,34 @@ app.use(helmet());
 app.use(cors({
   origin: [
     'http://localhost:5173', 
-    'http://localhost:5174'
+    'http://localhost:5174',
+    'http://localhost:5175'
   ],
   credentials: true
 }));
 
 // Rate limiting
-const limiter = rateLimit({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+const generalLimiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60 * 1000, // 1 minute
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 1000,
   message: {
-    error: 'Demasiadas solicitudes desde esta IP, intente nuevamente en 15 minutos.'
+    error: 'Demasiadas solicitudes desde esta IP, intente nuevamente en un momento.'
   }
 });
 
-app.use('/api/', limiter);
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login attempts per windowMs
+  message: {
+    error: 'Demasiados intentos de login desde esta IP, intente nuevamente en 15 minutos.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting
+app.use('/api/', generalLimiter);
+app.use('/api/auth/login', authLimiter);
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -62,7 +76,8 @@ app.use('/api/strategic-axes', strategicAxisRoutes);
 app.use('/api/objectives', objectiveRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/activities', activityRoutes);
-// app.use('/api/indicators', indicatorRoutes);
+app.use('/api/indicators', indicatorRoutes);
+// app.use('/api/progress-reports', progressReportRoutes);
 // app.use('/api/progress-reports', progressReportRoutes);
 // app.use('/api/budget', budgetRoutes);
 // app.use('/api/dashboard', dashboardRoutes);

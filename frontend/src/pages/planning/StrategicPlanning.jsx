@@ -13,7 +13,8 @@ import {
   Chip,
   LinearProgress,
   IconButton,
-  Tooltip
+  Tooltip,
+  useTheme
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -28,6 +29,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import StrategicAxesManagement from './StrategicAxesManagement';
 import ObjectiveManagement from './ObjectiveManagement';
 import ProductManagement from './ProductManagement';
+import ActivityManagementEnhanced from './ActivityManagementEnhanced';
+import IndicatorManagement from './IndicatorManagement';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -50,6 +53,7 @@ function TabPanel({ children, value, index, ...other }) {
 const StrategicPlanning = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
+  const theme = useTheme();
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -63,7 +67,9 @@ const StrategicPlanning = () => {
       icon: <TrendingUpIcon />,
       status: 'active',
       progress: 100,
-      color: 'primary'
+      color: 'primary',
+      count: '5',
+      subtitle: 'Ejes configurados'
     },
     {
       id: 'objectives',
@@ -72,34 +78,42 @@ const StrategicPlanning = () => {
       icon: <TargetIcon />,
       status: 'active',
       progress: 100,
-      color: 'secondary'
+      color: 'secondary',
+      count: '12',
+      subtitle: 'Objetivos estratégicos'
     },
     {
       id: 'products',
       title: 'Productos/Servicios',
       description: 'Productos y servicios a entregar por objetivo',
       icon: <BusinessIcon />,
-      status: 'pending',
-      progress: 0,
-      color: 'info'
+      status: 'active',
+      progress: 100,
+      color: 'info',
+      count: '33',
+      subtitle: 'Productos y servicios'
     },
     {
       id: 'activities',
       title: 'Actividades',
       description: 'Actividades específicas para alcanzar cada producto',
       icon: <SettingsIcon />,
-      status: 'pending',
-      progress: 0,
-      color: 'warning'
+      status: 'active',
+      progress: 100,
+      color: 'warning',
+      count: '51',
+      subtitle: 'Actividades planificadas'
     },
     {
       id: 'indicators',
       title: 'Indicadores',
       description: 'Indicadores de medición y seguimiento',
       icon: <AnalyticsIcon />,
-      status: 'pending',
-      progress: 0,
-      color: 'success'
+      status: 'active',
+      progress: 100,
+      color: 'success',
+      count: '25',
+      subtitle: 'Indicadores de gestión'
     }
   ];
 
@@ -116,7 +130,7 @@ const StrategicPlanning = () => {
       </Box>
 
       {/* Overview Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={4} sx={{ mb: 4 }}>
         {planningModules.map((module) => (
           <Grid item xs={12} sm={6} lg={4} key={module.id}>
             <Card 
@@ -124,14 +138,25 @@ const StrategicPlanning = () => {
                 height: '100%',
                 opacity: module.status === 'pending' ? 0.7 : 1,
                 cursor: module.status === 'active' ? 'pointer' : 'default',
+                transition: 'all 0.3s ease-in-out',
                 '&:hover': module.status === 'active' ? {
                   transform: 'translateY(-2px)',
-                  boxShadow: 3
+                  boxShadow: 4
                 } : {}
               }}
               onClick={() => {
-                if (module.status === 'active' && module.id === 'strategic-axes') {
-                  setActiveTab(0);
+                if (module.status === 'active') {
+                  if (module.id === 'strategic-axes') {
+                    setActiveTab(0);
+                  } else if (module.id === 'objectives') {
+                    setActiveTab(1);
+                  } else if (module.id === 'products') {
+                    setActiveTab(2);
+                  } else if (module.id === 'activities') {
+                    setActiveTab(3);
+                  } else if (module.id === 'indicators') {
+                    setActiveTab(4);
+                  }
                 }
               }}
             >
@@ -142,38 +167,72 @@ const StrategicPlanning = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      width: 48,
-                      height: 48,
+                      width: 56,
+                      height: 56,
                       borderRadius: '12px',
                       bgcolor: `${module.color}.light`,
                       color: `${module.color}.main`,
-                      mr: 2
+                      mr: 2,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        bgcolor: `${module.color}.100`,
+                        transform: 'scale(1.02)'
+                      }
                     }}
                   >
                     {module.icon}
                   </Box>
                   <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" component="div">
+                    <Typography variant="h6" component="div" sx={{ fontWeight: 600, mb: 0.5 }}>
                       {module.title}
                     </Typography>
                     <Chip
                       label={module.status === 'active' ? 'Disponible' : 'Próximamente'}
-                      color={module.status === 'active' ? 'success' : 'default'}
+                      color="default"
                       size="small"
+                      variant="outlined"
+                      sx={{ 
+                        fontSize: '0.75rem',
+                        bgcolor: module.status === 'active' ? 'success.50' : 'grey.100',
+                        color: module.status === 'active' ? 'success.main' : 'text.secondary',
+                        borderColor: module.status === 'active' ? 'success.200' : 'grey.300'
+                      }}
                     />
                   </Box>
                 </Box>
                 
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.4 }}>
                   {module.description}
                 </Typography>
                 
+                {/* Estadísticas */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                  <Typography
+                    variant="h4"
+                    color={`${module.color}.main`}
+                    sx={{ fontWeight: 700 }}
+                  >
+                    {module.count}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ lineHeight: 1.2 }}
+                  >
+                    {module.subtitle}
+                  </Typography>
+                </Box>
+                
                 <Box sx={{ mb: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="body2" color="text.secondary">
                       Progreso
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography 
+                      variant="body2" 
+                      color="text.primary"
+                      sx={{ fontWeight: 600 }}
+                    >
                       {module.progress}%
                     </Typography>
                   </Box>
@@ -181,26 +240,54 @@ const StrategicPlanning = () => {
                     variant="determinate"
                     value={module.progress}
                     color={module.color}
-                    sx={{ mt: 1 }}
+                    sx={{ 
+                      height: 8, 
+                      borderRadius: 4,
+                      bgcolor: 'action.hover',
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 4,
+                      }
+                    }}
                   />
                 </Box>
               </CardContent>
               
               {module.status === 'active' && (
-                <CardActions>
+                <CardActions sx={{ p: 2, pt: 0 }}>
                   <Button
-                    size="small"
+                    size="medium"
+                    variant="outlined"
+                    color="primary"
                     startIcon={<ViewIcon />}
+                    fullWidth
                     onClick={(e) => {
                       e.stopPropagation();
                       if (module.id === 'strategic-axes') {
                         setActiveTab(0);
                       } else if (module.id === 'objectives') {
                         setActiveTab(1);
+                      } else if (module.id === 'products') {
+                        setActiveTab(2);
+                      } else if (module.id === 'activities') {
+                        setActiveTab(3);
+                      } else if (module.id === 'indicators') {
+                        setActiveTab(4);
+                      }
+                    }}
+                    sx={{
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      fontWeight: 500,
+                      py: 1,
+                      borderColor: 'grey.300',
+                      color: 'text.primary',
+                      '&:hover': {
+                        borderColor: 'grey.400',
+                        bgcolor: 'grey.50'
                       }
                     }}
                   >
-                    Gestionar
+                    Gestionar {module.title}
                   </Button>
                 </CardActions>
               )}
@@ -220,8 +307,8 @@ const StrategicPlanning = () => {
           <Tab label="🎯 Ejes Estratégicos" />
           <Tab label="📊 Objetivos" />
           <Tab label="🎁 Productos/Servicios" />
-          <Tab label="⚙️ Actividades" disabled />
-          <Tab label="📈 Indicadores" disabled />
+          <Tab label="⚙️ Actividades" />
+          <Tab label="📈 Indicadores" />
         </Tabs>
         
         <TabPanel value={activeTab} index={0}>
@@ -237,25 +324,11 @@ const StrategicPlanning = () => {
         </TabPanel>
         
         <TabPanel value={activeTab} index={3}>
-          <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Typography variant="h6" color="text.secondary">
-              ⚙️ Gestión de Actividades
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Esta funcionalidad estará disponible próximamente
-            </Typography>
-          </Box>
+          <ActivityManagementEnhanced />
         </TabPanel>
         
         <TabPanel value={activeTab} index={4}>
-          <Box sx={{ p: 4, textAlign: 'center' }}>
-            <Typography variant="h6" color="text.secondary">
-              📈 Gestión de Indicadores
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              Esta funcionalidad estará disponible próximamente
-            </Typography>
-          </Box>
+          <IndicatorManagement />
         </TabPanel>
       </Paper>
     </Box>

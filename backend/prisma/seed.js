@@ -150,13 +150,21 @@ async function main() {
     const allPermissions = await prisma.permission.findMany();
     
     // Administrador: todos los permisos
-    await prisma.rolePermission.createMany({
-      data: allPermissions.map(permission => ({
-        roleId: adminRole.id,
-        permissionId: permission.id
-      })),
-      skipDuplicates: true
-    });
+    for (const permission of allPermissions) {
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: adminRole.id,
+            permissionId: permission.id
+          }
+        },
+        update: {},
+        create: {
+          roleId: adminRole.id,
+          permissionId: permission.id
+        }
+      });
+    }
 
     // Director de Planificación: permisos de planificación y lectura global
     const planningPermissions = allPermissions.filter(p => 

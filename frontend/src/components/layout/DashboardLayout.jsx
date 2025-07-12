@@ -125,6 +125,12 @@ const DashboardLayout = ({ children }) => {
           icon: <AssignmentIcon />,
           path: '/planning/activities',
           permission: 'read:activity'
+        },
+        {
+          title: 'Indicadores',
+          icon: <TrendingUpIcon />,
+          path: '/planning/indicators',
+          permission: 'read:indicator'
         }
       ]
     },

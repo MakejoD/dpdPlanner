@@ -29,7 +29,8 @@ import {
   AccordionDetails,
   Grid,
   FormControlLabel,
-  Switch
+  Switch,
+  Fab
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -247,20 +248,27 @@ const ProductManagement = () => {
 
   return (
     <Box p={3}>
-      <Box display="flex" justifyContent="between" alignItems="center" mb={3}>
-        <Box display="flex" alignItems="center" gap={2}>
-          <ProductIcon color="primary" fontSize="large" />
-          <Typography variant="h4" component="h1">
-            Gestión de Productos y Servicios
-          </Typography>
-        </Box>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" component="h1" gutterBottom display="flex" alignItems="center">
+          <ProductIcon sx={{ mr: 2, color: 'primary.main' }} />
+          Gestión de Productos y Servicios
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Administre los productos y servicios del Plan Operativo Anual
+        </Typography>
+      </Box>
+
+      {/* Barra de herramientas */}
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+        <Box />
         <Button
           variant="contained"
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
-          sx={{ ml: 'auto' }}
+          sx={{ display: { xs: 'none', md: 'flex' } }}
         >
-          Agregar Producto/Servicio
+          Nuevo Producto/Servicio
         </Button>
       </Box>
 
@@ -639,6 +647,21 @@ const ProductManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* FAB para crear nuevo producto - Solo móviles */}
+      <Fab
+        color="primary"
+        aria-label="add"
+        sx={{
+          position: 'fixed',
+          bottom: 16,
+          right: 16,
+          display: { xs: 'flex', md: 'none' }
+        }}
+        onClick={() => handleOpenDialog()}
+      >
+        <AddIcon />
+      </Fab>
     </Box>
   );
 };

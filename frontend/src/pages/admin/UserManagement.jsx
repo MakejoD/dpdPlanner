@@ -81,11 +81,15 @@ const UserManagement = () => {
         api.get('/departments')
       ]);
       
-      setUsers(usersResponse.data);
-      setRoles(rolesResponse.data);
-      setDepartments(departmentsResponse.data);
+      setUsers(usersResponse.data?.users || []);
+      setRoles(rolesResponse.data || []);
+      setDepartments(departmentsResponse.data || []);
     } catch (error) {
       console.error('Error cargando datos:', error);
+      // Asegurar que siempre tengamos arrays vacíos en caso de error
+      setUsers([]);
+      setRoles([]);
+      setDepartments([]);
       showAlert('Error al cargar datos', 'error');
     } finally {
       setLoading(false);
@@ -228,7 +232,7 @@ const UserManagement = () => {
   };
 
   // Filtrar usuarios por búsqueda
-  const filteredUsers = users.filter(user =>
+  const filteredUsers = (users || []).filter(user =>
     `${user.firstName} ${user.lastName} ${user.email}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -256,9 +260,9 @@ const UserManagement = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center' }}>
           <PeopleIcon sx={{ mr: 2 }} />
           Gestión de Usuarios
@@ -275,44 +279,44 @@ const UserManagement = () => {
       </Box>
 
       {/* Estadísticas */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={4} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} lg={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
                 Total Usuarios
               </Typography>
               <Typography variant="h4">
-                {users.length}
+                {(users || []).length}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
                 Usuarios Activos
               </Typography>
               <Typography variant="h4">
-                {users.filter(user => user.isActive).length}
+                {(users || []).filter(user => user.isActive).length}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
                 Con Departamento
               </Typography>
               <Typography variant="h4">
-                {users.filter(user => user.departmentId).length}
+                {(users || []).filter(user => user.departmentId).length}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>

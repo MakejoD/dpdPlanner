@@ -64,9 +64,10 @@ const DepartmentManagement = () => {
     try {
       setLoading(true);
       const response = await api.get('/departments');
-      setDepartments(response.data);
+      setDepartments(response.data || []);
     } catch (error) {
       console.error('Error cargando departamentos:', error);
+      setDepartments([]); // Asegurar que siempre sea un array
       showAlert('Error al cargar departamentos', 'error');
     } finally {
       setLoading(false);
@@ -177,7 +178,7 @@ const DepartmentManagement = () => {
   };
 
   // Obtener departamentos raíz (sin padre) para el select
-  const rootDepartments = departments.filter(dept => !dept.parentId);
+  const rootDepartments = (departments || []).filter(dept => !dept.parentId);
 
   if (loading) {
     return (
@@ -188,9 +189,9 @@ const DepartmentManagement = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ p: 3 }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Typography variant="h4" component="h1" sx={{ display: 'flex', alignItems: 'center' }}>
           <AccountTreeIcon sx={{ mr: 2 }} />
           Gestión de Departamentos
@@ -207,20 +208,20 @@ const DepartmentManagement = () => {
       </Box>
 
       {/* Estadísticas */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Grid container spacing={4} sx={{ mb: 4 }}>
+        <Grid item xs={12} sm={6} lg={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
                 Total Departamentos
               </Typography>
               <Typography variant="h4">
-                {departments.length}
+                {(departments || []).length}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
@@ -232,26 +233,26 @@ const DepartmentManagement = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
                 Usuarios Asignados
               </Typography>
               <Typography variant="h4">
-                {departments.reduce((sum, dept) => sum + (dept._count?.users || 0), 0)}
+                {(departments || []).reduce((sum, dept) => sum + (dept._count?.users || 0), 0)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid item xs={12} sm={6} lg={4}>
           <Card>
             <CardContent>
               <Typography color="textSecondary" gutterBottom>
                 Departamentos Activos
               </Typography>
               <Typography variant="h4">
-                {departments.filter(dept => dept.isActive).length}
+                {(departments || []).filter(dept => dept.isActive).length}
               </Typography>
             </CardContent>
           </Card>
@@ -273,7 +274,7 @@ const DepartmentManagement = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {departments.map((department) => (
+              {(departments || []).map((department) => (
                 <TableRow key={department.id} hover>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -341,7 +342,7 @@ const DepartmentManagement = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {departments.length === 0 && (
+              {(departments || []).length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <Typography variant="body2" color="textSecondary">

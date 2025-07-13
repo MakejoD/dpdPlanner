@@ -92,8 +92,8 @@ const RoleManagement = () => {
       console.log('Respuesta de permisos:', permissionsResponse);
       
       // Usar la nueva estructura de respuesta de las APIs
-      setRoles(rolesResponse?.data || []);
-      setPermissions(permissionsResponse?.data || []);
+      setRoles(rolesResponse?.data?.data || []);
+      setPermissions(permissionsResponse?.data?.data || []);
       setError('');
       
       if (!rolesResponse?.success) {
@@ -185,10 +185,10 @@ const RoleManagement = () => {
       let response;
       if (editingRole) {
         response = await httpClient.put(`/roles/${editingRole.id}`, dataToSend);
-        showAlert(response.message || 'Rol actualizado exitosamente', 'success');
+        showAlert(response.data.message || 'Rol actualizado exitosamente', 'success');
       } else {
         response = await httpClient.post('/roles', dataToSend);
-        showAlert(response.message || 'Rol creado exitosamente', 'success');
+        showAlert(response.data.message || 'Rol creado exitosamente', 'success');
       }
 
       handleCloseDialog();
@@ -208,7 +208,7 @@ const RoleManagement = () => {
 
     try {
       const response = await httpClient.delete(`/roles/${role.id}`);
-      showAlert(response.message || 'Rol eliminado exitosamente', 'success');
+      showAlert(response.data.message || 'Rol eliminado exitosamente', 'success');
       loadData();
     } catch (error) {
       console.error('Error eliminando rol:', error);
@@ -220,12 +220,14 @@ const RoleManagement = () => {
   // Agrupar permisos por recurso
   const groupPermissionsByResource = () => {
     const grouped = {};
-    permissions.forEach(permission => {
-      if (!grouped[permission.resource]) {
-        grouped[permission.resource] = [];
-      }
-      grouped[permission.resource].push(permission);
-    });
+    if (Array.isArray(permissions)) {
+      permissions.forEach(permission => {
+        if (!grouped[permission.resource]) {
+          grouped[permission.resource] = [];
+        }
+        grouped[permission.resource].push(permission);
+      });
+    }
     return grouped;
   };
 

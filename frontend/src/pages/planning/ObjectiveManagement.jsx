@@ -92,11 +92,11 @@ const ObjectiveManagement = () => {
       console.log('Respuesta de objetivos:', objectivesResponse);
       
       // Usar la nueva estructura de respuesta de las APIs
-      setStrategicAxes(axesResponse?.data || []);
-      setObjectives(objectivesResponse?.data || []);
+      setStrategicAxes(axesResponse?.data?.data || []);
+      setObjectives(objectivesResponse?.data?.data || []);
       
-      if (!axesResponse?.success) {
-        showAlert(axesResponse?.message || 'Error al cargar ejes estratégicos', 'error');
+      if (!axesResponse?.data?.success) {
+        showAlert(axesResponse?.data?.message || 'Error al cargar ejes estratégicos', 'error');
       }
       
       if (!objectivesResponse?.success) {
@@ -161,10 +161,10 @@ const ObjectiveManagement = () => {
       let response;
       if (editingObjective) {
         response = await httpClient.put(`/objectives/${editingObjective.id}`, dataToSend);
-        showAlert(response.message || 'Objetivo actualizado exitosamente', 'success');
+        showAlert(response.data.message || 'Objetivo actualizado exitosamente', 'success');
       } else {
         response = await httpClient.post('/objectives', dataToSend);
-        showAlert(response.message || 'Objetivo creado exitosamente', 'success');
+        showAlert(response.data.message || 'Objetivo creado exitosamente', 'success');
       }
 
       handleCloseDialog();
@@ -182,7 +182,7 @@ const ObjectiveManagement = () => {
 
     try {
       const response = await httpClient.delete(`/objectives/${objective.id}`);
-      showAlert(response.message || 'Objetivo eliminado exitosamente', 'success');
+      showAlert(response.data.message || 'Objetivo eliminado exitosamente', 'success');
       loadData();
     } catch (err) {
       console.error('Error eliminando objetivo:', err);
@@ -191,6 +191,7 @@ const ObjectiveManagement = () => {
   };
 
   const getFilteredObjectives = () => {
+    if (!Array.isArray(objectives)) return [];
     if (selectedAxisId) {
       return objectives.filter(obj => obj.strategicAxisId === selectedAxisId);
     }
@@ -199,19 +200,21 @@ const ObjectiveManagement = () => {
 
   const getObjectivesByAxis = () => {
     const grouped = {};
-    strategicAxes.forEach(axis => {
-      grouped[axis.id] = {
-        axis: axis,
-        objectives: objectives.filter(obj => obj.strategicAxisId === axis.id)
-      };
-    });
+    if (Array.isArray(strategicAxes)) {
+      strategicAxes.forEach(axis => {
+        grouped[axis.id] = {
+          axis: axis,
+          objectives: Array.isArray(objectives) ? objectives.filter(obj => obj.strategicAxisId === axis.id) : []
+        };
+      });
+    }
     return grouped;
   };
 
   const generateCode = (axisCode) => {
-    const axisObjectives = objectives.filter(obj => 
+    const axisObjectives = Array.isArray(objectives) ? objectives.filter(obj => 
       obj.strategicAxis?.code === axisCode
-    );
+    ) : [];
     const nextNumber = axisObjectives.length + 1;
     return `OBJ-${axisCode.split('-')[1]}-${nextNumber.toString().padStart(2, '0')}`;
   };
@@ -275,11 +278,11 @@ const ObjectiveManagement = () => {
                   label="Filtrar por Eje Estratégico"
                 >
                   <MenuItem value="">Todos los ejes</MenuItem>
-                  {strategicAxes.map((axis) => (
+                  {Array.isArray(strategicAxes) ? strategicAxes.map((axis) => (
                     <MenuItem key={axis.id} value={axis.id}>
                       {axis.code} - {axis.name}
                     </MenuItem>
-                  ))}
+                  )) : []}
                 </Select>
               </FormControl>
             </Grid>
@@ -528,11 +531,11 @@ const ObjectiveManagement = () => {
                   }}
                   label="Eje Estratégico"
                 >
-                  {strategicAxes.map((axis) => (
+                  {Array.isArray(strategicAxes) ? strategicAxes.map((axis) => (
                     <MenuItem key={axis.id} value={axis.id}>
                       {axis.code} - {axis.name}
                     </MenuItem>
-                  ))}
+                  )) : []}
                 </Select>
               </FormControl>
             </Grid>

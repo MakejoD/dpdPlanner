@@ -16,7 +16,8 @@ const productRoutes = require('./routes/products');
 const activityRoutes = require('./routes/activities');
 const indicatorRoutes = require('./routes/indicators');
 const budgetExecutionRoutes = require('./routes/budgetExecution');
-// const progressReportRoutes = require('./routes/progressReports');
+const approvalsRoutes = require('./routes/approvals');
+const progressReportRoutes = require('./routes/progressReports');
 // const budgetRoutes = require('./routes/budget');
 // const dashboardRoutes = require('./routes/dashboard');
 
@@ -79,7 +80,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/indicators', indicatorRoutes);
 app.use('/api/budget-execution', budgetExecutionRoutes);
-// app.use('/api/progress-reports', progressReportRoutes);
+app.use('/api/approvals', approvalsRoutes);
+app.use('/api/progress-reports', progressReportRoutes);
 // app.use('/api/budget', budgetRoutes);
 // app.use('/api/dashboard', dashboardRoutes);
 

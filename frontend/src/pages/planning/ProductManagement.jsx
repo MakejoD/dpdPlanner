@@ -74,14 +74,14 @@ const ProductManagement = () => {
 
       // Cargar objetivos
       const objectivesResponse = await httpClient.get('/objectives');
-      if (objectivesResponse.success) {
-        setObjectives(objectivesResponse.data);
+      if (objectivesResponse.data.success) {
+        setObjectives(objectivesResponse.data.data);
       }
 
       // Cargar productos
       const productsResponse = await httpClient.get('/products');
-      if (productsResponse.success) {
-        setProducts(productsResponse.data);
+      if (productsResponse.data.success) {
+        setProducts(productsResponse.data.data);
       }
 
       setError('');
@@ -140,7 +140,7 @@ const ProductManagement = () => {
         response = await httpClient.post('/products', formData);
       }
 
-      if (response.success) {
+      if (response.data.success) {
         const action = editingProduct ? 'actualizado' : 'creado';
         setSnackbar({ 
           open: true, 
@@ -150,7 +150,7 @@ const ProductManagement = () => {
         handleCloseDialog();
         loadData();
       } else {
-        throw new Error(response.message || 'Error al guardar el producto');
+        throw new Error(response.data.message || 'Error al guardar el producto');
       }
     } catch (err) {
       setError('Error al guardar: ' + err.message);
@@ -166,7 +166,7 @@ const ProductManagement = () => {
     try {
       const response = await httpClient.delete(`/products/${id}`);
       
-      if (response.success) {
+      if (response.data.success) {
         setSnackbar({ 
           open: true, 
           message: 'Producto eliminado exitosamente', 
@@ -174,7 +174,7 @@ const ProductManagement = () => {
         });
         loadData();
       } else {
-        throw new Error(response.message || 'Error al eliminar el producto');
+        throw new Error(response.data.message || 'Error al eliminar el producto');
       }
     } catch (err) {
       setError('Error al eliminar: ' + err.message);

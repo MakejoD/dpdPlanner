@@ -21,7 +21,7 @@ const authReducer = (state, action) => {
         token: action.payload.token,
         isAuthenticated: true,
         loading: false,
-        permissions: action.payload.user.permissions || []
+        permissions: action.payload.user?.permissions || []
       }
     case 'AUTH_ERROR':
       localStorage.removeItem('token')
@@ -79,7 +79,10 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true })
       
-      const data = await httpClient.post('/auth/login', { email, password })
+      const response = await httpClient.post('/auth/login', { email, password })
+
+      // Con el fix del httpClient, los datos están en response.data
+      const data = response.data
 
       // Guardar token en localStorage
       localStorage.setItem('token', data.token)
@@ -134,7 +137,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Verificar si el usuario tiene el permiso específico
-    return state.permissions.some(
+    return (state.permissions || []).some(
       permission => permission.action === action && permission.resource === resource
     )
   }
@@ -152,13 +155,10 @@ export const AuthProvider = ({ children }) => {
         return
       }
 
-      const response = await httpClient.get(`/users/${state.user?.id}/profile`)
+      const response = await httpClient.get('/auth/me')
 
-      if (!response.ok) {
-        throw new Error('Error al obtener el perfil del usuario')
-      }
-
-      const userData = await response.json()
+      // El endpoint /auth/me devuelve directamente userData, no envuelto
+      const userData = response.data
       
       dispatch({
         type: 'UPDATE_USER',
@@ -181,11 +181,12 @@ export const AuthProvider = ({ children }) => {
 
       const response = await httpClient.post('/auth/refresh')
 
-      if (!response.ok) {
+      // Con el fix del httpClient, verificamos response.data.message (no success)
+      if (!response.data.token) {
         throw new Error('Error al renovar el token')
       }
 
-      const data = await response.json()
+      const data = response.data
       localStorage.setItem('token', data.token)
 
       dispatch({

@@ -66,7 +66,7 @@ const DepartmentManagement = () => {
       console.log('Cargando departamentos...');
       const response = await httpClient.get('/departments');
       console.log('Respuesta de departamentos:', response);
-      setDepartments(response || []);
+      setDepartments(response?.data?.data || []);
     } catch (error) {
       console.error('Error cargando departamentos:', error);
       setDepartments([]); // Asegurar que siempre sea un array
@@ -180,7 +180,7 @@ const DepartmentManagement = () => {
   };
 
   // Obtener departamentos raíz (sin padre) para el select
-  const rootDepartments = (departments || []).filter(dept => !dept.parentId);
+  const rootDepartments = Array.isArray(departments) ? departments.filter(dept => !dept.parentId) : [];
 
   if (loading) {
     return (

@@ -87,13 +87,13 @@ const UserManagement = () => {
       console.log('Respuesta de roles:', rolesResponse);
       console.log('Respuesta de departamentos:', departmentsResponse);
       
-      // Usar la nueva estructura de respuesta de las APIs
-      setUsers(usersResponse?.data || []);
-      setRoles(rolesResponse?.data || []);
-      setDepartments(departmentsResponse?.data || []);
+      // Usar la nueva estructura de respuesta de las APIs con el fix del httpClient
+      setUsers(usersResponse?.data?.data || []);
+      setRoles(rolesResponse?.data?.data || []);
+      setDepartments(departmentsResponse?.data?.data || []);
       
-      if (!usersResponse?.success) {
-        showAlert(usersResponse?.message || 'Error al cargar usuarios', 'error');
+      if (!usersResponse?.data?.success) {
+        showAlert(usersResponse?.data?.message || 'Error al cargar usuarios', 'error');
       }
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -211,10 +211,10 @@ const UserManagement = () => {
       let response;
       if (editingUser) {
         response = await httpClient.put(`/users/${editingUser.id}`, dataToSend);
-        showAlert(response.message || 'Usuario actualizado exitosamente', 'success');
+        showAlert(response.data.message || 'Usuario actualizado exitosamente', 'success');
       } else {
         response = await httpClient.post('/users', dataToSend);
-        showAlert(response.message || 'Usuario creado exitosamente', 'success');
+        showAlert(response.data.message || 'Usuario creado exitosamente', 'success');
       }
 
       handleCloseDialog();
@@ -234,7 +234,7 @@ const UserManagement = () => {
 
     try {
       const response = await httpClient.delete(`/users/${user.id}`);
-      showAlert(response.message || 'Usuario eliminado exitosamente', 'success');
+      showAlert(response.data.message || 'Usuario eliminado exitosamente', 'success');
       loadData();
     } catch (error) {
       console.error('Error eliminando usuario:', error);
@@ -244,9 +244,9 @@ const UserManagement = () => {
   };
 
   // Filtrar usuarios por búsqueda
-  const filteredUsers = (users || []).filter(user =>
+  const filteredUsers = Array.isArray(users) ? users.filter(user =>
     `${user.firstName} ${user.lastName} ${user.email}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
 
   const getInitials = (firstName, lastName) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -311,7 +311,7 @@ const UserManagement = () => {
                 Usuarios Activos
               </Typography>
               <Typography variant="h4">
-                {(users || []).filter(user => user.isActive).length}
+                {Array.isArray(users) ? users.filter(user => user.isActive).length : 0}
               </Typography>
             </CardContent>
           </Card>
@@ -323,7 +323,7 @@ const UserManagement = () => {
                 Con Departamento
               </Typography>
               <Typography variant="h4">
-                {(users || []).filter(user => user.departmentId).length}
+                {Array.isArray(users) ? users.filter(user => user.departmentId).length : 0}
               </Typography>
             </CardContent>
           </Card>

@@ -33,6 +33,7 @@ model User {
   indicatorAssignments  IndicatorAssignment[]
   progressReports       ProgressReport[]
   approvedReports       ProgressReport[]     @relation("ApprovedBy")
+  approvalHistory       ReportApprovalHistory[] @relation("ApprovalHistoryBy")
   
   // Budget execution relations
   budgetResponsible     BudgetExecution[]    @relation("BudgetResponsible")
@@ -246,12 +247,18 @@ model ProgressReport {
   qualitativeComments String?
   challenges          String?
   nextSteps           String?
-  status              String            @default("pendiente") // pendiente, aprobado, rechazado
+  
+  // Enhanced approval system
+  status              String            @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED, WITHDRAWN
   reviewComments      String?
+  rejectionReason     String?
+  
+  // Timestamps
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
+  submittedAt         DateTime?
   reviewedAt          DateTime?
-
+  
   // Relations - un reporte puede ser para una actividad O un indicador, no ambos
   activityId String?
   activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
@@ -267,9 +274,29 @@ model ProgressReport {
 
   // File attachments
   attachments ProgressReportAttachment[]
+  
+  // Approval history
+  approvalHistory ReportApprovalHistory[]
 
   @@unique([reportedById, activityId, indicatorId, periodType, period])
   @@map("progress_reports")
+}
+
+// Approval history for audit trail
+model ReportApprovalHistory {
+  id               String         @id @default(uuid())
+  action           String         // CREATED, SUBMITTED, APPROVED, REJECTED, WITHDRAWN, MODIFIED
+  comments         String?
+  createdAt        DateTime       @default(now())
+  
+  // Relations
+  progressReportId String
+  progressReport   ProgressReport @relation(fields: [progressReportId], references: [id], onDelete: Cascade)
+  
+  actionById       String
+  actionBy         User          @relation("ApprovalHistoryBy", fields: [actionById], references: [id])
+  
+  @@map("report_approval_history")
 }
 
 model ProgressReportAttachment {

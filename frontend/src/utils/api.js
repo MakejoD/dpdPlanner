@@ -28,7 +28,9 @@ const httpClient = {
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
     
-    return response.json()
+    const jsonData = await response.json()
+    // Envolver la respuesta en un objeto data para consistencia con el frontend
+    return { data: jsonData }
   },
   
   post: async (url, data, options = {}) => {
@@ -54,7 +56,9 @@ const httpClient = {
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
     
-    return response.json()
+    const jsonData = await response.json()
+    // Envolver la respuesta en un objeto data para consistencia con el frontend
+    return { data: jsonData }
   },
   
   put: async (url, data, options = {}) => {
@@ -80,7 +84,9 @@ const httpClient = {
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
     
-    return response.json()
+    const jsonData = await response.json()
+    // Envolver la respuesta en un objeto data para consistencia con el frontend
+    return { data: jsonData }
   },
   
   delete: async (url, options = {}) => {
@@ -100,7 +106,9 @@ const httpClient = {
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
     
-    return response.json()
+    const jsonData = await response.json()
+    // Envolver la respuesta en un objeto data para consistencia con el frontend
+    return { data: jsonData }
   },
 }
 

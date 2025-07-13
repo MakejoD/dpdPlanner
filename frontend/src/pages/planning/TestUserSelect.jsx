@@ -43,7 +43,7 @@ const TestUserSelect = () => {
       // Cargar usuarios
       const usersResponse = await apiClient.get('/users?isActive=true');
       console.log('👥 Usuarios recibidos:', usersResponse.data);
-      setUsers(usersResponse.data.users || []);
+      setUsers(usersResponse.data.data || []);
       
       // Cargar actividades
       const activitiesResponse = await apiClient.get('/activities');

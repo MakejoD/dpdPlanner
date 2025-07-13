@@ -133,15 +133,23 @@ const ActivityManagement = () => {
 
       const response = await httpClient.get(`/activities?${params.toString()}`);
       
-      if (response.success) {
-        const activitiesData = response.data.activities || response.data;
-        setActivities(activitiesData || []);
+      console.log('🔍 Debug loadActivities response:', {
+        success: response.data.success,
+        message: response.data.message,
+        hasData: !!response.data.data,
+        hasActivities: !!response.data.data?.activities
+      });
+      
+      if (response.data.success) {
+        const activitiesData = response.data.data.activities || [];
+        console.log('✅ Actividades cargadas exitosamente:', activitiesData.length);
+        setActivities(activitiesData);
         
         // Calcular estadísticas
-        const total = activitiesData?.length || 0;
-        const active = activitiesData?.filter(a => a.isActive).length || 0;
-        const withAssignments = activitiesData?.filter(a => a.assignments?.length > 0).length || 0;
-        const withIndicators = activitiesData?.filter(a => a._count?.indicators > 0).length || 0;
+        const total = activitiesData.length || 0;
+        const active = activitiesData.filter(a => a.isActive).length || 0;
+        const withAssignments = activitiesData.filter(a => a.assignments?.length > 0).length || 0;
+        const withIndicators = activitiesData.filter(a => a._count?.indicators > 0).length || 0;
 
         setStats({
           total,
@@ -150,7 +158,8 @@ const ActivityManagement = () => {
           withIndicators
         });
       } else {
-        throw new Error(response.message || 'Error al cargar actividades');
+        console.error('❌ Error en respuesta de actividades:', response.data);
+        throw new Error(response.data.message || 'Error al cargar actividades');
       }
 
     } catch (error) {
@@ -165,8 +174,8 @@ const ActivityManagement = () => {
   const loadProducts = async () => {
     try {
       const response = await httpClient.get('/products?isActive=true');
-      if (response.success) {
-        setProducts(response.data || []);
+      if (response.data.success) {
+        setProducts(response.data.data || []);
       }
     } catch (error) {
       console.error('Error al cargar productos:', error);
@@ -176,14 +185,17 @@ const ActivityManagement = () => {
   const loadUsers = async () => {
     try {
       console.log('🔍 Cargando usuarios...');
-      const response = await apiClient.get('/users?isActive=true');
+      const response = await httpClient.get('/users?isActive=true');
       console.log('📊 Respuesta de usuarios:', response.data);
-      console.log('👥 Total de usuarios encontrados:', response.data.users?.length || 0);
       
-      setUsers(response.data.users || []);
+      // La estructura correcta es response.data.data (array directo), no response.data.users
+      const usersArray = response.data.data || [];
+      console.log('👥 Total de usuarios encontrados:', usersArray.length);
       
-      if (response.data.users?.length > 0) {
-        console.log('✅ Usuarios cargados exitosamente:', response.data.users.map(u => `${u.firstName} ${u.lastName}`));
+      setUsers(usersArray);
+      
+      if (usersArray.length > 0) {
+        console.log('✅ Usuarios cargados exitosamente:', usersArray.map(u => `${u.firstName} ${u.lastName}`));
       } else {
         console.log('⚠️ No se encontraron usuarios');
       }
@@ -243,10 +255,10 @@ const ActivityManagement = () => {
       };
 
       if (dialogMode === 'create') {
-        await apiClient.post('/activities', submitData);
+        await httpClient.post('/activities', submitData);
         setSuccess('Actividad creada exitosamente');
       } else if (dialogMode === 'edit') {
-        await apiClient.put(`/activities/${selectedActivity.id}`, submitData);
+        await httpClient.put(`/activities/${selectedActivity.id}`, submitData);
         setSuccess('Actividad actualizada exitosamente');
       }
 
@@ -268,7 +280,7 @@ const ActivityManagement = () => {
 
     try {
       setLoading(true);
-      await apiClient.delete(`/activities/${activity.id}`);
+      await httpClient.delete(`/activities/${activity.id}`);
       setSuccess('Actividad eliminada exitosamente');
       loadActivities();
     } catch (error) {
@@ -298,7 +310,7 @@ const ActivityManagement = () => {
     try {
       setLoading(true);
       
-      await apiClient.post(`/activities/${selectedActivityForAssignment.id}/assign`, assignmentData);
+      await httpClient.post(`/activities/${selectedActivityForAssignment.id}/assign`, assignmentData);
       setSuccess('Usuario asignado exitosamente');
       setOpenAssignmentDialog(false);
       loadActivities();
@@ -318,7 +330,7 @@ const ActivityManagement = () => {
 
     try {
       setLoading(true);
-      await apiClient.delete(`/activities/${activityId}/assignments/${userId}`);
+      await httpClient.delete(`/activities/${activityId}/assignments/${userId}`);
       setSuccess('Asignación removida exitosamente');
       loadActivities();
     } catch (error) {

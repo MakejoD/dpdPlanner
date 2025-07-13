@@ -99,17 +99,17 @@ const StrategicAxesManagement = () => {
       if (filters.isActive !== null) params.append('isActive', filters.isActive);
       
       const response = await httpClient.get(`/strategic-axes?${params}`);
-      const axesData = response.data || [];
+      const axesData = response.data.data || [];
       setStrategicAxes(axesData);
       
       // Calculate statistics
-      const total = axesData.length;
-      const active = axesData.filter(axis => axis.isActive).length;
-      const byDepartment = axesData.reduce((acc, axis) => {
+      const total = Array.isArray(axesData) ? axesData.length : 0;
+      const active = Array.isArray(axesData) ? axesData.filter(axis => axis.isActive).length : 0;
+      const byDepartment = Array.isArray(axesData) ? axesData.reduce((acc, axis) => {
         const deptName = axis.department?.name || 'Sin departamento';
         acc[deptName] = (acc[deptName] || 0) + 1;
         return acc;
-      }, {});
+      }, {}) : {};
       
       setStats({ total, active, byDepartment });
     } catch (error) {
@@ -123,7 +123,7 @@ const StrategicAxesManagement = () => {
   const loadDepartments = async () => {
     try {
       const response = await httpClient.get('/departments');
-      const departmentsData = response.data || [];
+      const departmentsData = response.data.data || [];
       setDepartments(departmentsData);
     } catch (error) {
       console.error('Error loading departments:', error);
@@ -192,10 +192,10 @@ const StrategicAxesManagement = () => {
       let response;
       if (dialogMode === 'create') {
         response = await httpClient.post('/strategic-axes', submitData);
-        setSuccess(response.message || 'Eje estratégico creado exitosamente');
+        setSuccess(response.data.message || 'Eje estratégico creado exitosamente');
       } else if (dialogMode === 'edit') {
         response = await httpClient.put(`/strategic-axes/${selectedAxis.id}`, submitData);
-        setSuccess(response.message || 'Eje estratégico actualizado exitosamente');
+        setSuccess(response.data.message || 'Eje estratégico actualizado exitosamente');
       }
 
       handleCloseDialog();
@@ -213,7 +213,7 @@ const StrategicAxesManagement = () => {
 
     try {
       const response = await httpClient.delete(`/strategic-axes/${axis.id}`);
-      setSuccess(response.message || 'Eje estratégico eliminado exitosamente');
+      setSuccess(response.data.message || 'Eje estratégico eliminado exitosamente');
       loadStrategicAxes();
     } catch (error) {
       console.error('Error deleting strategic axis:', error);
@@ -390,7 +390,7 @@ const StrategicAxesManagement = () => {
                 onChange={(e) => setFilters(prev => ({ ...prev, departmentId: e.target.value }))}
               >
                 <MenuItem value="">Todos</MenuItem>
-                {departments.map((dept) => (
+                {(departments || []).map((dept) => (
                   <MenuItem key={dept.id} value={dept.id}>
                     {dept.name} ({dept.code})
                   </MenuItem>
@@ -592,7 +592,7 @@ const StrategicAxesManagement = () => {
                   disabled={dialogMode === 'view'}
                 >
                   <MenuItem value="">Sin asignar</MenuItem>
-                  {departments.map((dept) => (
+                  {(departments || []).map((dept) => (
                     <MenuItem key={dept.id} value={dept.id}>
                       {dept.name} ({dept.code})
                     </MenuItem>

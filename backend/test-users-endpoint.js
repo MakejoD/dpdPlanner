@@ -23,17 +23,23 @@ async function testUsersEndpoint() {
 
     console.log('\n📊 Respuesta del endpoint /api/users:');
     console.log('Status:', usersResponse.status);
-    console.log('Total usuarios:', usersResponse.data.users.length);
+    console.log('Respuesta completa:', JSON.stringify(usersResponse.data, null, 2));
     
-    console.log('\n👥 Lista de usuarios:');
-    usersResponse.data.users.forEach((user, index) => {
-      console.log(`${index + 1}. ${user.firstName} ${user.lastName} (${user.email})`);
-      console.log(`   - ID: ${user.id}`);
-      console.log(`   - Rol: ${user.role?.name || 'Sin rol'}`);
-      console.log(`   - Departamento: ${user.department?.name || 'Sin departamento'}`);
-      console.log(`   - Activo: ${user.isActive}`);
-      console.log('');
-    });
+    if (usersResponse.data.users) {
+      console.log('Total usuarios:', usersResponse.data.users.length);
+      console.log('\n👥 Lista de usuarios:');
+      usersResponse.data.users.forEach((user, index) => {
+        console.log(`${index + 1}. ${user.firstName} ${user.lastName} (${user.email})`);
+        console.log(`   - ID: ${user.id}`);
+        console.log(`   - Rol: ${user.role?.name || 'Sin rol'}`);
+        console.log(`   - Departamento: ${user.department?.name || 'Sin departamento'}`);
+        console.log(`   - Activo: ${user.isActive}`);
+        console.log('');
+      });
+    } else {
+      console.log('❌ No se encontró la propiedad users en la respuesta');
+      console.log('Propiedades disponibles:', Object.keys(usersResponse.data));
+    }
 
     // Probar con diferentes parámetros
     console.log('\n🔍 Probando con parámetros específicos...');

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Approval System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Sistema de Aprobaciones</h1>
+    <p>Esta página prueba si los endpoints de aprobación funcionan correctamente desde el frontend.</p>
+    
+    <button onclick="testLogin()">1. Test Login</button>
+    <button onclick="testApprovalStats()">2. Test Stats</button>
+    <button onclick="testPendingReports()">3. Test Pending</button>
+    <button onclick="testMyReports()">4. Test My Reports</button>
+    <button onclick="testAllEndpoints()">🚀 Test All</button>
+    
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:3001/api';
+        let authToken = null;
+
+        function addResult(message, type = 'info') {
+            const resultsDiv = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-result ${type}`;
+            div.innerHTML = `${new Date().toLocaleTimeString()}: ${message}`;
+            resultsDiv.appendChild(div);
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+
+        async function testLogin() {
+            try {
+                addResult('🔑 Testing login...', 'info');
+                
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@poa.gov',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    authToken = data.token;
+                    addResult('✅ Login successful! Token obtained.', 'success');
+                    return true;
+                } else {
+                    addResult(`❌ Login failed: ${data.message || 'Unknown error'}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                addResult(`❌ Login error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testApprovalStats() {
+            if (!authToken) {
+                addResult('⚠️ Need to login first!', 'error');
+                return;
+            }
+
+            try {
+                addResult('📊 Testing approval stats...', 'info');
+                
+                const response = await fetch(`${API_BASE}/approvals/stats`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const stats = data.data.summary;
+                    addResult(`✅ Stats working! Pending: ${stats.pending}, Approved: ${stats.approved}, Total: ${stats.total}`, 'success');
+                } else {
+                    addResult(`❌ Stats failed: ${data.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Stats error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testPendingReports() {
+            if (!authToken) {
+                addResult('⚠️ Need to login first!', 'error');
+                return;
+            }
+
+            try {
+                addResult('📋 Testing pending reports...', 'info');
+                
+                const response = await fetch(`${API_BASE}/approvals/pending`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const count = data.data ? data.data.length : 0;
+                    addResult(`✅ Pending reports working! Found ${count} pending reports`, 'success');
+                } else {
+                    addResult(`❌ Pending reports failed: ${data.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Pending reports error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMyReports() {
+            if (!authToken) {
+                addResult('⚠️ Need to login first!', 'error');
+                return;
+            }
+
+            try {
+                addResult('📝 Testing my reports...', 'info');
+                
+                const response = await fetch(`${API_BASE}/approvals/my-reports`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    const count = data.data ? data.data.length : 0;
+                    addResult(`✅ My reports working! Found ${count} user reports`, 'success');
+                } else {
+                    addResult(`❌ My reports failed: ${data.message || 'Unknown error'}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ My reports error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAllEndpoints() {
+            addResult('🚀 Starting comprehensive test...', 'info');
+            
+            const loginSuccess = await testLogin();
+            if (loginSuccess) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await testApprovalStats();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await testPendingReports();
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await testMyReports();
+                
+                addResult('🎉 All tests completed!', 'success');
+            } else {
+                addResult('❌ Cannot continue tests without valid login', 'error');
+            }
+        }
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            addResult('📖 Page loaded. Click buttons to test endpoints or use "Test All"', 'info');
+        });
+    </script>
+</body>
+</html>

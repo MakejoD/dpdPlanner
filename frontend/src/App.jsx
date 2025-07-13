@@ -7,6 +7,7 @@ import LoadingScreen from './components/common/LoadingScreen'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardLayout from './components/layout/DashboardLayout'
 import TestLogin from './TestLogin'
+import ApprovalSystemTest from './components/common/ApprovalSystemTest'
 
 // Pages
 import Dashboard from './pages/dashboard/Dashboard'
@@ -21,6 +22,7 @@ import ActivityManagement from './pages/planning/ActivityManagement'
 import IndicatorManagement from './pages/planning/IndicatorManagement'
 import TestUserSelect from './pages/planning/TestUserSelect'
 import ProgressTracking from './pages/tracking/ProgressTracking'
+import ApprovalManagement from './pages/tracking/ApprovalManagement'
 import BudgetExecution from './pages/budget/BudgetExecution'
 import Reports from './pages/reports/Reports'
 import Profile from './pages/profile/Profile'
@@ -79,6 +81,7 @@ function App() {
         
         {/* Test route */}
         <Route path="/test" element={<TestLogin />} />
+        <Route path="/test-approval" element={<ApprovalSystemTest />} />
 
         {/* Rutas protegidas */}
         <Route 
@@ -184,6 +187,14 @@ function App() {
                     element={
                       <ProtectedRoute requiredPermission="read:progress_report">
                         <ProgressTracking />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/approvals" 
+                    element={
+                      <ProtectedRoute requiredPermission="approve:progress-report">
+                        <ApprovalManagement />
                       </ProtectedRoute>
                     } 
                   />

@@ -114,10 +114,10 @@ const BudgetExecution = () => {
       if (filters.budgetCode) queryParams.append('budgetCode', filters.budgetCode);
       if (filters.isActive !== undefined) queryParams.append('isActive', filters.isActive);
 
-      const response = await httpClient.get(`/api/budget-execution?${queryParams.toString()}`);
+      const response = await httpClient.get(`/budget-execution?${queryParams.toString()}`);
       
       if (response.data.success) {
-        setBudgetExecutions(response.data.data.budgetExecutions || []);
+        setBudgetExecutions(response.data.data || []);
       }
     } catch (error) {
       console.error('Error al cargar ejecuciones presupuestarias:', error);
@@ -130,9 +130,11 @@ const BudgetExecution = () => {
   // Función para cargar actividades
   const loadActivities = async () => {
     try {
-      const response = await httpClient.get('/api/activities');
-      if (response.data.success) {
-        setActivities(response.data.data.activities || []);
+      const response = await httpClient.get('activities');
+      if (response.data?.success) {
+        setActivities(response.data?.data || []);
+      } else {
+        setActivities([]);
       }
     } catch (error) {
       console.error('Error al cargar actividades:', error);
@@ -142,9 +144,11 @@ const BudgetExecution = () => {
   // Función para cargar departamentos
   const loadDepartments = async () => {
     try {
-      const response = await httpClient.get('/api/departments');
-      if (response.data.success) {
-        setDepartments(response.data.data.departments || []);
+      const response = await httpClient.get('departments');
+      if (response.data?.success) {
+        setDepartments(response.data?.data || []);
+      } else {
+        setDepartments([]);
       }
     } catch (error) {
       console.error('Error al cargar departamentos:', error);
@@ -264,9 +268,9 @@ const BudgetExecution = () => {
 
       let response;
       if (isEditing) {
-        response = await httpClient.put(`/api/budget-execution/${selectedExecution.id}`, requestData);
+        response = await httpClient.put(`/budget-execution/${selectedExecution.id}`, requestData);
       } else {
-        response = await httpClient.post('/api/budget-execution', requestData);
+        response = await httpClient.post('/budget-execution', requestData);
       }
 
       if (response.data.success) {
@@ -288,7 +292,7 @@ const BudgetExecution = () => {
   // Manejar eliminación
   const handleDelete = async () => {
     try {
-      const response = await httpClient.delete(`/api/budget-execution/${executionToDelete.id}`);
+      const response = await httpClient.delete(`/budget-execution/${executionToDelete.id}`);
       
       if (response.data.success) {
         showSnackbar('Ejecución presupuestaria eliminada exitosamente');
@@ -322,13 +326,13 @@ const BudgetExecution = () => {
 
   // Calcular resumen
   const calculateSummary = () => {
-    const totals = budgetExecutions.reduce((acc, execution) => {
+    const totals = Array.isArray(budgetExecutions) ? budgetExecutions.reduce((acc, execution) => {
       acc.assigned += parseFloat(execution.assignedAmount);
       acc.committed += parseFloat(execution.committedAmount);
       acc.accrued += parseFloat(execution.accruedAmount);
       acc.paid += parseFloat(execution.paidAmount);
       return acc;
-    }, { assigned: 0, committed: 0, accrued: 0, paid: 0 });
+    }, { assigned: 0, committed: 0, accrued: 0, paid: 0 }) : { assigned: 0, committed: 0, accrued: 0, paid: 0 };
 
     return {
       ...totals,
@@ -457,11 +461,11 @@ const BudgetExecution = () => {
                 onChange={(e) => setFilters(prev => ({ ...prev, activityId: e.target.value }))}
               >
                 <MenuItem value="">Todas</MenuItem>
-                {activities.map((activity) => (
+                {Array.isArray(activities) ? activities.map((activity) => (
                   <MenuItem key={activity.id} value={activity.id}>
                     {activity.code} - {activity.name}
                   </MenuItem>
-                ))}
+                )) : []}
               </Select>
             </FormControl>
           </Grid>
@@ -539,7 +543,7 @@ const BudgetExecution = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                budgetExecutions.map((execution) => (
+                Array.isArray(budgetExecutions) ? budgetExecutions.map((execution) => (
                   <TableRow key={execution.id} hover>
                     <TableCell>
                       <Typography variant="body2" fontWeight="medium">
@@ -623,7 +627,7 @@ const BudgetExecution = () => {
                       </Stack>
                     </TableCell>
                   </TableRow>
-                ))
+                )) : []
               )}
             </TableBody>
           </Table>
@@ -678,11 +682,11 @@ const BudgetExecution = () => {
                   label="Actividad *"
                   onChange={(e) => handleFormChange('activityId', e.target.value)}
                 >
-                  {activities.map((activity) => (
+                  {Array.isArray(activities) ? activities.map((activity) => (
                     <MenuItem key={activity.id} value={activity.id}>
                       {activity.code} - {activity.name}
                     </MenuItem>
-                  ))}
+                  )) : []}
                 </Select>
               </FormControl>
             </Grid>

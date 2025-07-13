@@ -138,7 +138,7 @@ const ProgressTracking = () => {
   const loadReports = async () => {
     try {
       const response = await httpClient.get('/progress-reports');
-      setReports(response.reports || []);
+      setReports(response.data.data || []);
     } catch (error) {
       console.error('Error cargando informes:', error);
       setReports([]);
@@ -153,7 +153,8 @@ const ProgressTracking = () => {
       const response = await httpClient.get('/activities/list-for-tracking');
       console.log('✅ Respuesta del endpoint list-for-tracking:', response);
       
-      const activitiesData = response.data || [];
+      // Con el fix del httpClient, los datos están en response.data.data
+      const activitiesData = response.data.data || [];
       console.log('📊 Actividades cargadas:', activitiesData.length);
       
       // También obtener indicadores directos asignados
@@ -161,7 +162,7 @@ const ProgressTracking = () => {
         const indicatorsResponse = await httpClient.get('/progress-reports/my-assignments');
         setAssignments({
           activities: activitiesData,
-          directIndicators: indicatorsResponse.directIndicators || []
+          directIndicators: indicatorsResponse.data.data?.directIndicators || []
         });
         console.log('✅ Asignaciones cargadas exitosamente');
       } catch (indicatorError) {
@@ -181,7 +182,7 @@ const ProgressTracking = () => {
   const loadStats = async () => {
     try {
       const response = await httpClient.get('/progress-reports');
-      const allReports = response.reports || [];
+      const allReports = response.data.data || [];
       
       setStats({
         totalReports: allReports.length,

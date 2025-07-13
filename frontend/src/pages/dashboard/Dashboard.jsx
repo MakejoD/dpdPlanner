@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material'
 
 import { useAuth } from '../../contexts/AuthContext'
+import ApprovalsDashboard from '../../components/common/ApprovalsDashboard'
 
 const Dashboard = () => {
   const { user, hasRole } = useAuth()
@@ -295,6 +296,15 @@ const Dashboard = () => {
           </Grid>
         </Grid>
       )}
+
+      {/* Sistema de Aprobaciones - Para usuarios con permisos de aprobación */}
+      {hasRole('Director') || hasRole('Administrador') || hasRole('Director de Área') ? (
+        <Grid container spacing={3} sx={{ mt: 2 }}>
+          <Grid item xs={12}>
+            <ApprovalsDashboard />
+          </Grid>
+        </Grid>
+      ) : null}
     </Box>
   )
 }

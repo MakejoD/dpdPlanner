@@ -802,4 +802,176 @@ router.get('/download/:attachmentId', auth, async (req, res) => {
   }
 });
 
+// ========== APPROVAL WORKFLOW ENDPOINTS ==========
+
+/**
+ * @route   POST /api/progress-reports/:id/submit
+ * @desc    Enviar reporte para aprobación
+ * @access  Private
+ */
+router.post('/:id/submit',
+  auth,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      // Verificar que el reporte existe y pertenece al usuario
+      const report = await prisma.progressReport.findFirst({
+        where: {
+          id: id,
+          reportedById: user.id
+        },
+        include: {
+          activity: true,
+          indicator: true
+        }
+      });
+
+      if (!report) {
+        return res.status(404).json({
+          success: false,
+          data: null,
+          message: 'Reporte no encontrado o no tienes permisos para enviarlo'
+        });
+      }
+
+      if (report.status !== 'DRAFT') {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: `El reporte debe estar en estado DRAFT para ser enviado. Estado actual: ${report.status}`
+        });
+      }
+
+      // Actualizar el reporte para enviarlo a aprobación
+      const updatedReport = await prisma.$transaction(async (tx) => {
+        // Actualizar estado del reporte
+        const updated = await tx.progressReport.update({
+          where: { id: id },
+          data: {
+            status: 'SUBMITTED',
+            submittedAt: new Date()
+          },
+          include: {
+            activity: {
+              select: { name: true, code: true }
+            },
+            indicator: {
+              select: { name: true, type: true }
+            }
+          }
+        });
+
+        // Crear entrada en el historial de aprobaciones
+        await tx.reportApprovalHistory.create({
+          data: {
+            progressReportId: id,
+            action: 'SUBMITTED',
+            comments: 'Reporte enviado para aprobación',
+            actionById: user.id
+          }
+        });
+
+        return updated;
+      });
+
+      res.json({
+        success: true,
+        data: updatedReport,
+        message: 'Reporte enviado para aprobación exitosamente'
+      });
+
+    } catch (error) {
+      console.error('Error enviando reporte para aprobación:', error);
+      res.status(500).json({
+        success: false,
+        data: null,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+);
+
+/**
+ * @route   POST /api/progress-reports/:id/withdraw
+ * @desc    Retirar reporte de aprobación (volver a DRAFT)
+ * @access  Private
+ */
+router.post('/:id/withdraw',
+  auth,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = req.user;
+
+      // Verificar que el reporte existe y pertenece al usuario
+      const report = await prisma.progressReport.findFirst({
+        where: {
+          id: id,
+          reportedById: user.id
+        }
+      });
+
+      if (!report) {
+        return res.status(404).json({
+          success: false,
+          data: null,
+          message: 'Reporte no encontrado o no tienes permisos para retirarlo'
+        });
+      }
+
+      if (report.status !== 'SUBMITTED') {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: `Solo se pueden retirar reportes en estado SUBMITTED. Estado actual: ${report.status}`
+        });
+      }
+
+      // Retirar el reporte (volver a DRAFT)
+      const updatedReport = await prisma.$transaction(async (tx) => {
+        // Actualizar estado del reporte
+        const updated = await tx.progressReport.update({
+          where: { id: id },
+          data: {
+            status: 'DRAFT',
+            submittedAt: null,
+            reviewedAt: null,
+            reviewedById: null,
+            reviewComments: null,
+            rejectionReason: null
+          }
+        });
+
+        // Crear entrada en el historial de aprobaciones
+        await tx.reportApprovalHistory.create({
+          data: {
+            progressReportId: id,
+            action: 'WITHDRAWN',
+            comments: 'Reporte retirado por el autor',
+            actionById: user.id
+          }
+        });
+
+        return updated;
+      });
+
+      res.json({
+        success: true,
+        data: updatedReport,
+        message: 'Reporte retirado exitosamente. Ahora puedes editarlo nuevamente.'
+      });
+
+    } catch (error) {
+      console.error('Error retirando reporte:', error);
+      res.status(500).json({
+        success: false,
+        data: null,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+);
+
 module.exports = router;

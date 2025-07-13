@@ -162,8 +162,8 @@ const IndicatorManagement = () => {
       const response = await httpClient.get(`/indicators?${params.toString()}`);
       
       // Usar la nueva estructura de respuesta de la API
-      if (response.success) {
-        const indicatorsData = response.data.indicators || [];
+      if (response.data.success) {
+        const indicatorsData = response.data.data.indicators || [];
         setIndicators(indicatorsData);
         
         // Calcular estadísticas
@@ -195,7 +195,7 @@ const IndicatorManagement = () => {
           avgProgress: Math.round(avgProgress * 100) / 100
         });
       } else {
-        setError(response.message || 'Error al cargar indicadores');
+        setError(response.data.message || 'Error al cargar indicadores');
       }
 
     } catch (error) {
@@ -210,10 +210,10 @@ const IndicatorManagement = () => {
     try {
       const response = await httpClient.get(`/indicators/levels/options?year=${filters.year}`);
       
-      if (response.success) {
-        setLevelOptions(response.data || { strategicAxes: [], objectives: [], products: [], activities: [] });
+      if (response.data.success) {
+        setLevelOptions(response.data.data || { strategicAxes: [], objectives: [], products: [], activities: [] });
       } else {
-        console.error('Error al cargar opciones de niveles:', response.message);
+        console.error('Error al cargar opciones de niveles:', response.data.message);
       }
     } catch (error) {
       console.error('Error al cargar opciones de niveles:', error);
@@ -326,18 +326,18 @@ const IndicatorManagement = () => {
       let response;
       if (dialogMode === 'create') {
         response = await httpClient.post('/indicators', submitData);
-        if (response.success) {
+        if (response.data.success) {
           showSnackbar('Indicador creado exitosamente', 'success');
         } else {
-          showSnackbar(response.message || 'Error al crear el indicador', 'error');
+          showSnackbar(response.data.message || 'Error al crear el indicador', 'error');
           return;
         }
       } else if (dialogMode === 'edit') {
         response = await httpClient.put(`/indicators/${selectedIndicator.id}`, submitData);
-        if (response.success) {
+        if (response.data.success) {
           showSnackbar('Indicador actualizado exitosamente', 'success');
         } else {
-          showSnackbar(response.message || 'Error al actualizar el indicador', 'error');
+          showSnackbar(response.data.message || 'Error al actualizar el indicador', 'error');
           return;
         }
       }
@@ -365,11 +365,11 @@ const IndicatorManagement = () => {
       setLoading(true);
       const response = await httpClient.delete(`/indicators/${indicator.id}`);
       
-      if (response.success) {
+      if (response.data.success) {
         showSnackbar('Indicador eliminado exitosamente', 'success');
         loadIndicators();
       } else {
-        showSnackbar(response.message || 'Error al eliminar el indicador', 'error');
+        showSnackbar(response.data.message || 'Error al eliminar el indicador', 'error');
       }
     } catch (error) {
       console.error('Error al eliminar indicador:', error);

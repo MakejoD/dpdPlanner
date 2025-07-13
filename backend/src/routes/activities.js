@@ -127,18 +127,44 @@ router.get('/',
               }
             },
             indicators: {
+              where: {
+                isActive: true
+              },
               select: {
                 id: true,
                 name: true,
                 type: true,
-                measurementUnit: true
+                measurementUnit: true,
+                baseline: true,
+                annualTarget: true,
+                q1Target: true,
+                q2Target: true,
+                q3Target: true,
+                q4Target: true
+              }
+            },
+            progressReports: {
+              orderBy: {
+                createdAt: 'desc'
+              },
+              take: 1, // Solo el último reporte
+              select: {
+                id: true,
+                period: true,
+                periodType: true,
+                currentValue: true,
+                targetValue: true,
+                executionPercentage: true,
+                status: true,
+                createdAt: true
               }
             },
             _count: {
               select: {
                 indicators: true,
                 assignments: true,
-                budgetExecutions: true
+                budgetExecutions: true,
+                progressReports: true
               }
             }
           },
@@ -167,6 +193,451 @@ router.get('/',
       res.status(500).json({
         error: 'Error interno del servidor',
         message: 'No se pudieron obtener las actividades'
+      });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/activities/for-tracking
+ * @desc    Obtener actividades con información completa para el módulo de seguimiento
+ * @access  Private (requires read:activity permission)
+ */
+router.get('/for-tracking',
+  authenticateToken,
+  authorize('read', 'activity'),
+  async (req, res) => {
+    try {
+      const { userId } = req.query;
+      const currentUser = req.user;
+
+      // Construir filtros basados en el usuario
+      let whereClause = {
+        isActive: true
+      };
+
+      // Si se especifica un userId o si el usuario no es admin, filtrar por asignaciones
+      if (userId || !['Administrador', 'Director de Planificación'].includes(currentUser.role.name)) {
+        const targetUserId = userId || currentUser.id;
+        whereClause.assignments = {
+          some: {
+            userId: targetUserId
+          }
+        };
+      }
+
+      const activities = await prisma.activity.findMany({
+        where: whereClause,
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              objective: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  strategicAxis: {
+                    select: {
+                      id: true,
+                      name: true,
+                      code: true,
+                      department: {
+                        select: {
+                          id: true,
+                          name: true,
+                          code: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          assignments: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true
+                }
+              }
+            }
+          },
+          indicators: {
+            where: {
+              isActive: true
+            },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              type: true,
+              measurementUnit: true,
+              baseline: true,
+              annualTarget: true,
+              q1Target: true,
+              q2Target: true,
+              q3Target: true,
+              q4Target: true,
+              
+            }
+          },
+          progressReports: {
+            where: userId ? { reportedById: userId } : {},
+            orderBy: {
+              createdAt: 'desc'
+            },
+            take: 3, // Los últimos 3 reportes
+            select: {
+              id: true,
+              period: true,
+              periodType: true,
+targetValue: true,
+              executionPercentage: true,
+              status: true,
+              createdAt: true
+            }
+          },
+          _count: {
+            select: {
+              indicators: true,
+              progressReports: true
+            }
+          }
+        },
+        orderBy: [
+          { order: 'asc' },
+          { createdAt: 'desc' }
+        ]
+      });
+
+      // Enriquecer la respuesta con información calculada
+      const enrichedActivities = activities.map(activity => {
+        // Calcular el período actual recomendado
+        const now = new Date();
+        const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
+        const currentYear = now.getFullYear();
+        
+        // Determinar la meta trimesal actual
+        const quarterlyTargets = {
+          1: activity.indicators?.[0]?.q1Target,
+          2: activity.indicators?.[0]?.q2Target,
+          3: activity.indicators?.[0]?.q3Target,
+          4: activity.indicators?.[0]?.q4Target
+        };
+
+        return {
+          ...activity,
+          // Información para pre-población en seguimiento
+          tracking: {
+            currentPeriod: `${currentYear}-Q${currentQuarter}`,
+            recommendedTargetValue: quarterlyTargets[currentQuarter] || activity.indicators?.[0]?.annualTarget || '',
+            hasRecentReport: activity.progressReports?.length > 0,
+            lastReportDate: activity.progressReports?.[0]?.createdAt,
+            suggestedCurrentValue: activity.indicators?.[0]?.currentValue || 0
+          }
+        };
+      });
+
+      res.json({
+        data: enrichedActivities,
+        metadata: {
+          totalActivities: enrichedActivities.length,
+          withIndicators: enrichedActivities.filter(a => a._count.indicators > 0).length,
+          withReports: enrichedActivities.filter(a => a._count.progressReports > 0).length
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error al obtener actividades para seguimiento:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No se pudieron obtener las actividades para seguimiento'
+      });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/activities/tracking-info
+ * @desc    Obtener actividades con información para seguimiento (endpoint temporal)
+ * @access  Private
+ */
+router.get('/tracking-info',
+  authenticateToken,
+  authorize('read', 'activity'),
+  async (req, res) => {
+    try {
+      console.log('🔧 DEBUG: Iniciando tracking-info endpoint');
+      const { userId } = req.query;
+      const currentUser = req.user;
+      console.log('🔧 DEBUG: Usuario actual:', currentUser.id, currentUser.role.name);
+
+      let whereClause = { isActive: true };
+
+      if (userId || !['Administrador', 'Director de Planificación'].includes(currentUser.role.name)) {
+        const targetUserId = userId || currentUser.id;
+        whereClause.assignments = {
+          some: { userId: targetUserId }
+        };
+        console.log('🔧 DEBUG: Filtrando por usuario:', targetUserId);
+      }
+
+      console.log('🔧 DEBUG: Consultando actividades...');
+      const activities = await prisma.activity.findMany({
+        where: whereClause,
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              code: true,
+              type: true,
+              objective: {
+                select: {
+                  id: true,
+                  name: true,
+                  code: true,
+                  strategicAxis: {
+                    select: {
+                      id: true,
+                      name: true,
+                      code: true,
+                      department: {
+                        select: {
+                          id: true,
+                          name: true,
+                          code: true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          assignments: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                  email: true
+                }
+              }
+            }
+          },
+          indicators: {
+            where: {
+              isActive: true
+            },
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              type: true,
+              measurementUnit: true,
+              baseline: true,
+              annualTarget: true,
+              q1Target: true,
+              q2Target: true,
+              q3Target: true,
+              q4Target: true,
+              
+            }
+          },
+          progressReports: {
+            where: userId ? { reportedById: userId } : {},
+            orderBy: {
+              createdAt: 'desc'
+            },
+            take: 3, // Los últimos 3 reportes
+            select: {
+              id: true,
+              period: true,
+              periodType: true,
+targetValue: true,
+              executionPercentage: true,
+              status: true,
+              createdAt: true
+            }
+          },
+          _count: {
+            select: {
+              indicators: true,
+              progressReports: true
+            }
+          }
+        },
+        orderBy: [
+          { order: 'asc' },
+          { createdAt: 'desc' }
+        ]
+      });
+
+      // Enriquecer la respuesta con información calculada
+      const enrichedActivities = activities.map(activity => {
+        // Calcular el período actual recomendado
+        const now = new Date();
+        const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
+        const currentYear = now.getFullYear();
+        
+        // Determinar la meta trimesal actual
+        const quarterlyTargets = {
+          1: activity.indicators?.[0]?.q1Target,
+          2: activity.indicators?.[0]?.q2Target,
+          3: activity.indicators?.[0]?.q3Target,
+          4: activity.indicators?.[0]?.q4Target
+        };
+
+        return {
+          ...activity,
+          // Información para pre-población en seguimiento
+          tracking: {
+            currentPeriod: `${currentYear}-Q${currentQuarter}`,
+            recommendedTargetValue: quarterlyTargets[currentQuarter] || activity.indicators?.[0]?.annualTarget || '',
+            hasRecentReport: activity.progressReports?.length > 0,
+            lastReportDate: activity.progressReports?.[0]?.createdAt,
+            suggestedCurrentValue: activity.indicators?.[0]?.currentValue || 0
+          }
+        };
+      });
+
+      res.json({
+        data: enrichedActivities,
+        metadata: {
+          totalActivities: enrichedActivities.length,
+          withIndicators: enrichedActivities.filter(a => a._count.indicators > 0).length,
+          withReports: enrichedActivities.filter(a => a._count.progressReports > 0).length
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error al obtener información de seguimiento:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No se pudo obtener la información de seguimiento'
+      });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/activities/list-for-tracking
+ * @desc    Obtener actividades con información para seguimiento (endpoint simplificado)
+ * @access  Private
+ */
+router.get('/list-for-tracking',
+  authenticateToken,
+  authorize('read', 'activity'),
+  async (req, res) => {
+    try {
+      const { userId } = req.query;
+      const currentUser = req.user;
+
+      let whereClause = { isActive: true };
+
+      if (userId || !['Administrador', 'Director de Planificación'].includes(currentUser.role.name)) {
+        const targetUserId = userId || currentUser.id;
+        whereClause.assignments = {
+          some: { userId: targetUserId }
+        };
+      }
+
+      const activities = await prisma.activity.findMany({
+        where: whereClause,
+        include: {
+          product: {
+            select: {
+              id: true, name: true, code: true, type: true,
+              objective: {
+                select: {
+                  id: true, name: true, code: true,
+                  strategicAxis: {
+                    select: {
+                      id: true, name: true, code: true,
+                      department: { select: { id: true, name: true, code: true } }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          assignments: {
+            include: {
+              user: { select: { id: true, firstName: true, lastName: true, email: true } }
+            }
+          },
+          indicators: {
+            where: { isActive: true },
+            select: {
+              id: true, name: true, description: true, type: true,
+              measurementUnit: true, baseline: true, annualTarget: true,
+              q1Target: true, q2Target: true, q3Target: true, q4Target: true
+            }
+          },
+          progressReports: {
+            orderBy: { createdAt: 'desc' },
+            take: 3,
+            select: {
+              id: true, period: true, periodType: true,
+targetValue: true, executionPercentage: true,
+              status: true, createdAt: true
+            }
+          },
+          _count: { select: { indicators: true, progressReports: true } }
+        },
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }]
+      });
+
+      const now = new Date();
+      const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
+      const currentYear = now.getFullYear();
+
+      const enrichedActivities = activities.map(activity => {
+        const quarterlyTargets = {
+          1: activity.indicators?.[0]?.q1Target,
+          2: activity.indicators?.[0]?.q2Target,
+          3: activity.indicators?.[0]?.q3Target,
+          4: activity.indicators?.[0]?.q4Target
+        };
+
+        return {
+          ...activity,
+          tracking: {
+            currentPeriod: `${currentYear}-Q${currentQuarter}`,
+            recommendedTargetValue: quarterlyTargets[currentQuarter] || activity.indicators?.[0]?.annualTarget || '',
+            hasRecentReport: activity.progressReports?.length > 0,
+            lastReportDate: activity.progressReports?.[0]?.createdAt,
+            suggestedCurrentValue: activity.progressReports?.[0]?.currentValue || 0
+          }
+        };
+      });
+
+      res.json({
+        success: true,
+        data: enrichedActivities,
+        metadata: {
+          totalActivities: enrichedActivities.length,
+          withIndicators: enrichedActivities.filter(a => a._count.indicators > 0).length,
+          withReports: enrichedActivities.filter(a => a._count.progressReports > 0).length
+        }
+      });
+
+    } catch (error) {
+      logger.error('Error al obtener información de seguimiento:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Error interno del servidor',
+        message: 'No se pudo obtener la información de seguimiento'
       });
     }
   }
@@ -218,14 +689,38 @@ router.get('/:id',
               }
             }
           },
-          indicators: true,
+          indicators: {
+            where: {
+              isActive: true
+            },
+            select: {
+              id: true,
+              name: true,
+              type: true,
+              measurementUnit: true,
+              baseline: true,
+              annualTarget: true,
+              q1Target: true,
+              q2Target: true,
+              q3Target: true,
+              q4Target: true,
+              
+            }
+          },
           budgetExecutions: {
-            include: {
-              user: {
+            select: {
+              id: true,
+              year: true,
+              assignedAmount: true,
+              committedAmount: true,
+              accruedAmount: true,
+              paidAmount: true,
+              executionPercent: true,
+              budgetItem: {
                 select: {
                   id: true,
-                  firstName: true,
-                  lastName: true
+                  name: true,
+                  code: true
                 }
               }
             }
@@ -992,3 +1487,5 @@ router.get('/:id/statistics',
 );
 
 module.exports = router;
+
+

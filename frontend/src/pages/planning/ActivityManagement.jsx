@@ -34,7 +34,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   Avatar,
-  AvatarGroup
+  AvatarGroup,
+  Stack
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -391,14 +392,34 @@ const ActivityManagement = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Box>
-        <Box mb={3}>
-          <Typography variant="h4" gutterBottom display="flex" alignItems="center">
-            <AssignmentIcon sx={{ mr: 2 }} />
-            Gestión de Actividades
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Configure y gestione las actividades específicas del POA
-          </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box>
+            <Typography variant="h4" gutterBottom display="flex" alignItems="center">
+              <AssignmentIcon sx={{ mr: 2 }} />
+              Gestión de Actividades
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Configure y gestione las actividades específicas del POA
+            </Typography>
+          </Box>
+          
+          <Stack direction="row" spacing={2}>
+            <Button
+              variant="outlined"
+              startIcon={<TrendingUpIcon />}
+              onClick={() => window.open('/tracking/progress', '_blank')}
+              sx={{ textTransform: 'none' }}
+            >
+              Ir a Seguimiento
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog('create')}
+            >
+              Nueva Actividad
+            </Button>
+          </Stack>
         </Box>
 
         {/* Alertas */}
@@ -743,6 +764,51 @@ const ActivityManagement = () => {
                     }
                     label="Actividad activa"
                   />
+                </Grid>
+              )}
+
+              {/* Información de indicadores y seguimiento para modo vista */}
+              {dialogMode === 'view' && selectedActivity && (
+                <Grid item xs={12}>
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Información de Seguimiento
+                    </Typography>
+                    <Typography variant="body2">
+                      • Indicadores asociados: {selectedActivity._count?.indicators || 0}<br/>
+                      • Reportes de progreso: {selectedActivity._count?.progressReports || 0}<br/>
+                      • Usuarios asignados: {selectedActivity.assignments?.length || 0}
+                    </Typography>
+                    {selectedActivity._count?.indicators > 0 && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<TrendingUpIcon />}
+                        onClick={() => window.open('/tracking/progress', '_blank')}
+                        sx={{ mt: 1 }}
+                      >
+                        Ver en Módulo de Seguimiento
+                      </Button>
+                    )}
+                  </Alert>
+                  
+                  {selectedActivity.indicators && selectedActivity.indicators.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="subtitle2" gutterBottom>
+                        Indicadores Asociados:
+                      </Typography>
+                      {selectedActivity.indicators.map((indicator) => (
+                        <Card key={indicator.id} variant="outlined" sx={{ mb: 1, p: 2 }}>
+                          <Typography variant="body2" fontWeight="medium">
+                            {indicator.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Meta: {indicator.annualTarget} {indicator.measurementUnit}
+                          </Typography>
+                        </Card>
+                      ))}
+                    </Box>
+                  )}
                 </Grid>
               )}
             </Grid>

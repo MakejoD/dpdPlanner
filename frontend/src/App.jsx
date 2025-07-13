@@ -11,6 +11,7 @@ import ApprovalSystemTest from './components/common/ApprovalSystemTest'
 
 // Pages
 import Dashboard from './pages/dashboard/Dashboard'
+import DashboardAdvanced from './pages/dashboard/DashboardAdvanced'
 import UserManagement from './pages/admin/UserManagement'
 import RoleManagement from './pages/admin/RoleManagement'
 import DepartmentManagement from './pages/admin/DepartmentManagement'
@@ -91,7 +92,8 @@ function App() {
               <DashboardLayout>
                 <Routes>
                   {/* Dashboard principal */}
-                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<DashboardAdvanced />} />
+                  <Route path="/dashboard-basic" element={<Dashboard />} />
 
                   {/* Administración del sistema */}
                   <Route 

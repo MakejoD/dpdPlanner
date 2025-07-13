@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Box,
   Typography,
@@ -13,7 +13,14 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
-  Divider
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Button,
+  CircularProgress,
+  Alert
 } from '@mui/material'
 import {
   TrendingUp as TrendingUpIcon,
@@ -22,11 +29,43 @@ import {
   People as PeopleIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
-  Error as ErrorIcon
+  Error as ErrorIcon,
+  FilterList as FilterIcon,
+  GetApp as ExportIcon,
+  Timeline as TimelineIcon
 } from '@mui/icons-material'
+
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  ArcElement,
+  PointElement,
+} from 'chart.js'
+import { Bar, Line, Doughnut, Pie } from 'react-chartjs-2'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
 
 import { useAuth } from '../../contexts/AuthContext'
 import ApprovalsDashboard from '../../components/common/ApprovalsDashboard'
+import httpClient from '../../utils/api'
+
+// Registrar componentes de Chart.js
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+)
 
 const Dashboard = () => {
   const { user, hasRole } = useAuth()

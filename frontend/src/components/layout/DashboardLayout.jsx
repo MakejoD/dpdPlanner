@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -142,9 +142,9 @@ const DashboardLayout = ({ children }) => {
       permission: 'read:progress_report',
       children: [
         {
-          title: 'Reportes de Avance',
+          title: 'Informes de Avances',
           icon: <AssignmentIcon />,
-          path: '/tracking/progress-reports',
+          path: '/tracking/progress',
           permission: 'read:progress_report'
         },
         {
@@ -193,6 +193,21 @@ const DashboardLayout = ({ children }) => {
     }
   }
 
+  // Auto-expandir menús cuando hay rutas activas
+  useEffect(() => {
+    menuItems.forEach(item => {
+      if (item.children) {
+        const hasActiveChild = item.children.some(child => location.pathname === child.path)
+        if (hasActiveChild && !expandedMenus[item.key]) {
+          setExpandedMenus(prev => ({
+            ...prev,
+            [item.key]: true
+          }))
+        }
+      }
+    })
+  }, [location.pathname])
+
   const toggleExpandedMenu = (menuKey) => {
     setExpandedMenus(prev => ({
       ...prev,
@@ -214,6 +229,9 @@ const DashboardLayout = ({ children }) => {
 
     const isActive = location.pathname === item.path
     const isExpanded = expandedMenus[item.key]
+    
+    // Para menús expandibles, verificar si algún hijo está activo
+    const hasActiveChild = item.children?.some(child => location.pathname === child.path)
 
     if (item.expandable) {
       return (
@@ -223,19 +241,23 @@ const DashboardLayout = ({ children }) => {
               onClick={() => toggleExpandedMenu(item.key)}
               sx={{
                 pl: isChild ? 4 : 2,
+                backgroundColor: hasActiveChild ? 'action.selected' : 'transparent',
                 '&:hover': {
                   backgroundColor: 'action.hover'
                 }
               }}
             >
-              <ListItemIcon sx={{ color: 'text.secondary' }}>
+              <ListItemIcon sx={{ 
+                color: hasActiveChild ? 'primary.main' : 'text.secondary' 
+              }}>
                 {item.icon}
               </ListItemIcon>
               <ListItemText 
                 primary={item.title}
                 primaryTypographyProps={{
-                  fontWeight: 500,
-                  fontSize: '0.9rem'
+                  fontWeight: hasActiveChild ? 600 : 500,
+                  fontSize: '0.9rem',
+                  color: hasActiveChild ? 'primary.main' : 'text.primary'
                 }}
               />
               {isExpanded ? <ExpandLess /> : <ExpandMore />}

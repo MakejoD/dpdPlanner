@@ -14,6 +14,11 @@ import UserManagement from './pages/admin/UserManagement'
 import RoleManagement from './pages/admin/RoleManagement'
 import DepartmentManagement from './pages/admin/DepartmentManagement'
 import StrategicPlanning from './pages/planning/StrategicPlanning'
+import StrategicAxesManagement from './pages/planning/StrategicAxesManagement'
+import ObjectiveManagement from './pages/planning/ObjectiveManagement'
+import ProductManagement from './pages/planning/ProductManagement'
+import ActivityManagement from './pages/planning/ActivityManagement'
+import IndicatorManagement from './pages/planning/IndicatorManagement'
 import TestUserSelect from './pages/planning/TestUserSelect'
 import ProgressTracking from './pages/tracking/ProgressTracking'
 import BudgetExecution from './pages/budget/BudgetExecution'
@@ -112,11 +117,44 @@ function App() {
                   />
 
                   {/* Planificación estratégica */}
+                  <Route path="/planning" element={<Navigate to="/planning/strategic-axes" replace />} />
                   <Route 
-                    path="/planning/*" 
+                    path="/planning/strategic-axes" 
                     element={
                       <ProtectedRoute requiredPermission="read:strategic_axis">
-                        <StrategicPlanning />
+                        <StrategicAxesManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/planning/objectives" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:objective">
+                        <ObjectiveManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/planning/products" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:product">
+                        <ProductManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/planning/activities" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:activity">
+                        <ActivityManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/planning/indicators" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:indicator">
+                        <IndicatorManagement />
                       </ProtectedRoute>
                     } 
                   />
@@ -132,11 +170,28 @@ function App() {
                   />
 
                   {/* Seguimiento y avances */}
+                  <Route path="/tracking" element={<Navigate to="/tracking/progress" replace />} />
                   <Route 
-                    path="/tracking/*" 
+                    path="/tracking/progress" 
                     element={
                       <ProtectedRoute requiredPermission="read:progress_report">
                         <ProgressTracking />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/tracking/progress-reports" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:progress_report">
+                        <ProgressTracking />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/tracking/indicators" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:indicator">
+                        <IndicatorManagement />
                       </ProtectedRoute>
                     } 
                   />

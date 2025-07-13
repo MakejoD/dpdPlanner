@@ -69,7 +69,7 @@ const ProgressTracking = () => {
   const [loading, setLoading] = useState(true);
   const [tabValue, setTabValue] = useState(0);
   
-  // Estados para reportes
+  // Estados para informes
   const [reports, setReports] = useState([]);
   const [assignments, setAssignments] = useState({ activities: [], directIndicators: [] });
   
@@ -140,7 +140,7 @@ const ProgressTracking = () => {
       const response = await httpClient.get('/progress-reports');
       setReports(response.reports || []);
     } catch (error) {
-      console.error('Error cargando reportes:', error);
+      console.error('Error cargando informes:', error);
       setReports([]);
     }
   };
@@ -210,7 +210,7 @@ const ProgressTracking = () => {
 
   // Funciones para crear reporte
   const handleOpenCreateDialog = (assignment, type) => {
-    console.log('🎯 Abriendo diálogo de creación de reporte...');
+    console.log('🎯 Abriendo diálogo de creación de informe...');
     console.log('📋 Asignación:', assignment);
     console.log('🔧 Tipo:', type);
     
@@ -238,9 +238,27 @@ const ProgressTracking = () => {
       // Usar información de seguimiento si está disponible
       const trackingInfo = assignment.tracking || {};
       
+      // Determinar la meta trimestral correspondiente al período actual
+      const currentPeriod = generateCurrentPeriod('trimestral');
+      let quarterlyTarget = '';
+      switch (currentPeriod) {
+        case 'T1':
+          quarterlyTarget = primaryIndicator.q1Target || '';
+          break;
+        case 'T2':
+          quarterlyTarget = primaryIndicator.q2Target || '';
+          break;
+        case 'T3':
+          quarterlyTarget = primaryIndicator.q3Target || '';
+          break;
+        case 'T4':
+          quarterlyTarget = primaryIndicator.q4Target || '';
+          break;
+      }
+      
       initialFormData = {
         ...initialFormData,
-        targetValue: trackingInfo.recommendedTargetValue || primaryIndicator.annualTarget || '',
+        targetValue: trackingInfo.recommendedTargetValue || quarterlyTarget || primaryIndicator.annualTarget || '',
         currentValue: trackingInfo.suggestedCurrentValue || primaryIndicator.currentValue || '',
         period: trackingInfo.currentPeriod || initialFormData.period
       };
@@ -257,7 +275,24 @@ const ProgressTracking = () => {
       console.log('✅ Datos pre-poblados:', initialFormData);
     } else if (type === 'indicator') {
       // Pre-popular con datos del indicador directo
-      initialFormData.targetValue = assignment.annualTarget || '';
+      const currentPeriod = generateCurrentPeriod('trimestral');
+      let quarterlyTarget = '';
+      switch (currentPeriod) {
+        case 'T1':
+          quarterlyTarget = assignment.q1Target || '';
+          break;
+        case 'T2':
+          quarterlyTarget = assignment.q2Target || '';
+          break;
+        case 'T3':
+          quarterlyTarget = assignment.q3Target || '';
+          break;
+        case 'T4':
+          quarterlyTarget = assignment.q4Target || '';
+          break;
+      }
+      
+      initialFormData.targetValue = quarterlyTarget || assignment.annualTarget || '';
       initialFormData.currentValue = assignment.currentValue || '';
     }
 
@@ -289,6 +324,21 @@ const ProgressTracking = () => {
     setFormData(prev => {
       const newData = { ...prev, [name]: value };
       
+      // Si cambia el tipo de período, actualizar el período actual
+      if (name === 'periodType') {
+        newData.period = generateCurrentPeriod(value);
+        
+        // Si cambia a trimestral y tenemos un assignment con indicadores, actualizar la meta
+        if (value === 'trimestral' && selectedAssignment) {
+          updateQuarterlyTarget(newData, generateCurrentPeriod(value));
+        }
+      }
+      
+      // Si cambia el período trimestral, actualizar la meta correspondiente
+      if (name === 'period' && prev.periodType === 'trimestral' && selectedAssignment) {
+        updateQuarterlyTarget(newData, value);
+      }
+      
       // Auto-calcular porcentaje de ejecución
       if (name === 'currentValue' || name === 'targetValue') {
         const current = parseFloat(name === 'currentValue' ? value : prev.currentValue) || 0;
@@ -302,6 +352,55 @@ const ProgressTracking = () => {
     });
   };
 
+  // Función para actualizar la meta trimestral según el período seleccionado
+  const updateQuarterlyTarget = (formData, selectedPeriod) => {
+    if (!selectedAssignment) return;
+
+    let indicator = null;
+    
+    // Obtener el indicador principal según el tipo de assignment
+    if (selectedAssignment.type === 'activity' && selectedAssignment.indicators?.length > 0) {
+      indicator = selectedAssignment.indicators[0]; // Usar el primer indicador
+    } else if (selectedAssignment.type === 'indicator') {
+      indicator = selectedAssignment;
+    }
+
+    if (!indicator) return;
+
+    // Mapear el período seleccionado a la meta trimestral correspondiente
+    let quarterlyTarget = '';
+    switch (selectedPeriod) {
+      case 'T1':
+        quarterlyTarget = indicator.q1Target || '';
+        break;
+      case 'T2':
+        quarterlyTarget = indicator.q2Target || '';
+        break;
+      case 'T3':
+        quarterlyTarget = indicator.q3Target || '';
+        break;
+      case 'T4':
+        quarterlyTarget = indicator.q4Target || '';
+        break;
+      default:
+        quarterlyTarget = '';
+    }
+
+    // Actualizar la meta en el formulario
+    if (quarterlyTarget) {
+      formData.targetValue = quarterlyTarget.toString();
+      
+      // Recalcular el porcentaje si ya hay un valor actual
+      if (formData.currentValue) {
+        const current = parseFloat(formData.currentValue) || 0;
+        const target = parseFloat(quarterlyTarget) || 0;
+        if (target > 0) {
+          formData.executionPercentage = ((current / target) * 100).toFixed(2);
+        }
+      }
+    }
+  };
+
   const handleFileChange = (e) => {
     setSelectedFiles(Array.from(e.target.files));
   };
@@ -310,7 +409,7 @@ const ProgressTracking = () => {
     try {
       // Validaciones
       if (!formData.periodType || !formData.period) {
-        showAlert('Debe especificar el tipo y período del reporte', 'error');
+        showAlert('Debe especificar el tipo y período del informe', 'error');
         return;
       }
 
@@ -334,12 +433,12 @@ const ProgressTracking = () => {
 
       await httpClient.post('/progress-reports', formDataToSend);
 
-      showAlert('Reporte creado exitosamente', 'success');
+      showAlert('Informe creado exitosamente', 'success');
       handleCloseCreateDialog();
       loadData();
     } catch (error) {
-      console.error('Error creando reporte:', error);
-      showAlert(error.response?.data?.message || 'Error al crear reporte', 'error');
+      console.error('Error creando informe:', error);
+      showAlert(error.response?.data?.message || 'Error al crear informe', 'error');
     }
   };
 
@@ -378,14 +477,14 @@ const ProgressTracking = () => {
       await httpClient.put(`/progress-reports/${selectedReport.id}/review`, reviewData);
       
       showAlert(
-        `Reporte ${reviewData.action === 'aprobar' ? 'aprobado' : 'rechazado'} exitosamente`, 
+        `Informe ${reviewData.action === 'aprobar' ? 'aprobado' : 'rechazado'} exitosamente`, 
         'success'
       );
       handleCloseReviewDialog();
       loadData();
     } catch (error) {
-      console.error('Error revisando reporte:', error);
-      showAlert(error.response?.data?.message || 'Error al revisar reporte', 'error');
+      console.error('Error revisando informe:', error);
+      showAlert(error.response?.data?.message || 'Error al revisar informe', 'error');
     }
   };
 
@@ -397,17 +496,60 @@ const ProgressTracking = () => {
     switch (type) {
       case 'trimestral':
         const quarter = Math.ceil((now.getMonth() + 1) / 3);
-        return `${year}-Q${quarter}`;
+        return `T${quarter}`;
       case 'mensual':
-        const month = (now.getMonth() + 1).toString().padStart(2, '0');
-        return `${year}-${month}`;
+        const month = now.getMonth() + 1;
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        return monthNames[month - 1];
       case 'semanal':
         // Calcular semana del año (simplificado)
         const startOfYear = new Date(year, 0, 1);
         const weekNumber = Math.ceil((now - startOfYear) / (7 * 24 * 60 * 60 * 1000));
-        return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+        return `S${weekNumber.toString().padStart(2, '0')}`;
       default:
-        return `${year}-Q1`;
+        return 'T1';
+    }
+  };
+
+  const getPeriodOptions = (type) => {
+    const currentYear = new Date().getFullYear();
+    
+    switch (type) {
+      case 'trimestral':
+        return [
+          { value: 'T1', label: 'T1 - Primer Trimestre (Enero-Marzo)' },
+          { value: 'T2', label: 'T2 - Segundo Trimestre (Abril-Junio)' },
+          { value: 'T3', label: 'T3 - Tercer Trimestre (Julio-Septiembre)' },
+          { value: 'T4', label: 'T4 - Cuarto Trimestre (Octubre-Diciembre)' }
+        ];
+      case 'mensual':
+        return [
+          { value: 'Enero', label: 'Enero' },
+          { value: 'Febrero', label: 'Febrero' },
+          { value: 'Marzo', label: 'Marzo' },
+          { value: 'Abril', label: 'Abril' },
+          { value: 'Mayo', label: 'Mayo' },
+          { value: 'Junio', label: 'Junio' },
+          { value: 'Julio', label: 'Julio' },
+          { value: 'Agosto', label: 'Agosto' },
+          { value: 'Septiembre', label: 'Septiembre' },
+          { value: 'Octubre', label: 'Octubre' },
+          { value: 'Noviembre', label: 'Noviembre' },
+          { value: 'Diciembre', label: 'Diciembre' }
+        ];
+      case 'semanal':
+        // Generar semanas del 1 al 52
+        const weeks = [];
+        for (let i = 1; i <= 52; i++) {
+          weeks.push({
+            value: `S${i.toString().padStart(2, '0')}`,
+            label: `Semana ${i}`
+          });
+        }
+        return weeks;
+      default:
+        return [];
     }
   };
 
@@ -462,10 +604,10 @@ const ProgressTracking = () => {
         <Box>
           <Typography variant="h4" gutterBottom display="flex" alignItems="center">
             <TrendingUpIcon sx={{ mr: 2 }} />
-            Seguimiento y Reportes
+            Seguimiento e Informes
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Gestiona el seguimiento y reportes de progreso de actividades e indicadores
+            Gestiona el seguimiento e informes de avances de actividades e indicadores
           </Typography>
         </Box>
         
@@ -477,23 +619,22 @@ const ProgressTracking = () => {
             sx={{ textTransform: 'none' }}
           >
             Ir a Planificación
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => {
-              // Abrir diálogo para actividad con más indicadores
-              const activityWithIndicators = assignments.activities.find(a => a.indicators?.length > 0);
-              if (activityWithIndicators) {
-                handleOpenCreateDialog(activityWithIndicators, 'activity');
-              } else {
-                showAlert('No hay actividades con indicadores disponibles para reportar', 'warning');
-              }
-            }}
-            disabled={assignments.activities.filter(a => a.indicators?.length > 0).length === 0}
-          >
-            Crear Reporte
-          </Button>
+          </Button>            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                // Abrir diálogo para actividad con más indicadores
+                const activityWithIndicators = assignments.activities.find(a => a.indicators?.length > 0);
+                if (activityWithIndicators) {
+                  handleOpenCreateDialog(activityWithIndicators, 'activity');
+                } else {
+                  showAlert('No hay actividades con indicadores disponibles para reportar', 'warning');
+                }
+              }}
+              disabled={assignments.activities.filter(a => a.indicators?.length > 0).length === 0}
+            >
+              Crear Informe
+            </Button>
         </Stack>
       </Box>
 
@@ -506,7 +647,7 @@ const ProgressTracking = () => {
                 <ReportIcon sx={{ mr: 2, color: 'primary.main' }} />
                 <Box>
                   <Typography color="textSecondary" gutterBottom>
-                    Total Reportes
+                    Total Informes
                   </Typography>
                   <Typography variant="h4">
                     {stats.totalReports}
@@ -573,7 +714,7 @@ const ProgressTracking = () => {
       <Paper sx={{ mb: 3 }}>
         <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth">
           <Tab label="Mis Asignaciones" icon={<AssignmentIcon />} />
-          <Tab label="Reportes de Progreso" icon={<TrendingUpIcon />} />
+          <Tab label="Informes de Avances" icon={<TrendingUpIcon />} />
         </Tabs>
       </Paper>
 
@@ -609,7 +750,7 @@ const ProgressTracking = () => {
                             icon={<ChartIcon />}
                           />
                           <Chip 
-                            label={`${activity._count?.progressReports || 0} reportes`}
+                            label={`${activity._count?.progressReports || 0} informes`}
                             size="small"
                             color="secondary"
                             icon={<ReportIcon />}
@@ -640,7 +781,7 @@ const ProgressTracking = () => {
                               onClick={() => handleOpenCreateDialog(activity, 'activity')}
                               disabled={!activity.indicators || activity.indicators.length === 0}
                             >
-                              Nuevo Reporte
+                              Nuevo Informe
                             </Button>
                           </Box>
                         </Grid>
@@ -655,7 +796,7 @@ const ProgressTracking = () => {
                                 • Meta recomendada: {activity.tracking.recommendedTargetValue}<br/>
                                 • Último valor: {activity.tracking.suggestedCurrentValue}<br/>
                                 {activity.tracking.hasRecentReport && (
-                                  <>• Último reporte: {new Date(activity.tracking.lastReportDate).toLocaleDateString()}</>
+                                  <>                                • Último informe: {new Date(activity.tracking.lastReportDate).toLocaleDateString()}</>
                                 )}
                               </Typography>
                             </Alert>
@@ -718,7 +859,7 @@ const ProgressTracking = () => {
                         {(!activity.indicators || activity.indicators.length === 0) && (
                           <Grid item xs={12}>
                             <Alert severity="warning">
-                              Esta actividad no tiene indicadores asociados. Para crear reportes de progreso, 
+                              Esta actividad no tiene indicadores asociados. Para crear informes de avances, 
                               primero debe configurar indicadores desde el módulo de planificación.
                             </Alert>
                           </Grid>
@@ -805,7 +946,7 @@ const ProgressTracking = () => {
         </Grid>
       )}
 
-      {/* Tab 2: Reportes de Progreso */}
+      {/* Tab 2: Informes de Avances */}
       {tabValue === 1 && (
         <Paper>
           <TableContainer>
@@ -826,7 +967,7 @@ const ProgressTracking = () => {
                   <TableRow>
                     <TableCell colSpan={7} align="center">
                       <Typography variant="body2" color="textSecondary">
-                        No hay reportes de progreso
+                        No hay informes de avances
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -939,7 +1080,7 @@ const ProgressTracking = () => {
       {/* Dialog para crear reporte */}
       <Dialog open={openCreateDialog} onClose={handleCloseCreateDialog} maxWidth="md" fullWidth>
         <DialogTitle>
-          Nuevo Reporte de Progreso - {selectedAssignment?.name}
+          Nuevo Informe de Avances - {selectedAssignment?.name}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
@@ -960,15 +1101,21 @@ const ProgressTracking = () => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  name="period"
-                  label="Período"
-                  fullWidth
-                  value={formData.period}
-                  onChange={handleInputChange}
-                  placeholder="Ej: 2024-Q1, 2024-01, 2024-W01"
-                  helperText="Formato: YYYY-QX, YYYY-MM, YYYY-WXX"
-                />
+                <FormControl fullWidth>
+                  <InputLabel>Período</InputLabel>
+                  <Select
+                    name="period"
+                    value={formData.period}
+                    label="Período"
+                    onChange={handleInputChange}
+                  >
+                    {getPeriodOptions(formData.periodType).map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
               <Grid item xs={12} md={4}>
                 <TextField
@@ -1087,7 +1234,7 @@ const ProgressTracking = () => {
         <DialogActions>
           <Button onClick={handleCloseCreateDialog}>Cancelar</Button>
           <Button onClick={handleSubmitReport} variant="contained">
-            Crear Reporte
+            Crear Informe
           </Button>
         </DialogActions>
       </Dialog>
@@ -1095,7 +1242,7 @@ const ProgressTracking = () => {
       {/* Dialog para ver reporte */}
       <Dialog open={openViewDialog} onClose={handleCloseViewDialog} maxWidth="md" fullWidth>
         <DialogTitle>
-          Detalles del Reporte - {selectedReport?.activity?.name || selectedReport?.indicator?.name}
+          Detalles del Informe - {selectedReport?.activity?.name || selectedReport?.indicator?.name}
         </DialogTitle>
         <DialogContent>
           {selectedReport && (
@@ -1190,7 +1337,7 @@ const ProgressTracking = () => {
       {/* Dialog para revisar reporte */}
       <Dialog open={openReviewDialog} onClose={handleCloseReviewDialog} maxWidth="sm" fullWidth>
         <DialogTitle>
-          Revisar Reporte - {selectedReport?.activity?.name || selectedReport?.indicator?.name}
+          Revisar Informe - {selectedReport?.activity?.name || selectedReport?.indicator?.name}
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
@@ -1213,7 +1360,7 @@ const ProgressTracking = () => {
               fullWidth
               value={reviewData.reviewComments}
               onChange={(e) => setReviewData(prev => ({ ...prev, reviewComments: e.target.value }))}
-              placeholder="Agregue comentarios sobre la revisión del reporte"
+              placeholder="Agregue comentarios sobre la revisión del informe"
             />
           </Box>
         </DialogContent>

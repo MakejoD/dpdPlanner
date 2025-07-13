@@ -46,7 +46,7 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import api from '../../utils/api';
+import httpClient from '../../utils/api';
 
 const UserManagement = () => {
   const { user, hasPermission } = useAuth();
@@ -75,15 +75,22 @@ const UserManagement = () => {
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('Cargando datos de usuarios...');
+      
       const [usersResponse, rolesResponse, departmentsResponse] = await Promise.all([
-        api.get('/users'),
-        api.get('/roles'),
-        api.get('/departments')
+        httpClient.get('/users'),
+        httpClient.get('/roles'),
+        httpClient.get('/departments')
       ]);
       
-      setUsers(usersResponse.data?.users || []);
-      setRoles(rolesResponse.data || []);
-      setDepartments(departmentsResponse.data || []);
+      console.log('Respuesta de usuarios:', usersResponse);
+      console.log('Respuesta de roles:', rolesResponse);
+      console.log('Respuesta de departamentos:', departmentsResponse);
+      
+      // La respuesta de usuarios tiene estructura {users: [...], pagination: {...}}
+      setUsers(usersResponse?.users || []);
+      setRoles(rolesResponse || []);
+      setDepartments(departmentsResponse || []);
     } catch (error) {
       console.error('Error cargando datos:', error);
       // Asegurar que siempre tengamos arrays vacíos en caso de error
@@ -198,10 +205,10 @@ const UserManagement = () => {
       }
 
       if (editingUser) {
-        await api.put(`/users/${editingUser.id}`, dataToSend);
+        await httpClient.put(`/users/${editingUser.id}`, dataToSend);
         showAlert('Usuario actualizado exitosamente', 'success');
       } else {
-        await api.post('/users', dataToSend);
+        await httpClient.post('/users', dataToSend);
         showAlert('Usuario creado exitosamente', 'success');
       }
 
@@ -221,7 +228,7 @@ const UserManagement = () => {
     }
 
     try {
-      await api.delete(`/users/${user.id}`);
+      await httpClient.delete(`/users/${user.id}`);
       showAlert('Usuario eliminado exitosamente', 'success');
       loadData();
     } catch (error) {

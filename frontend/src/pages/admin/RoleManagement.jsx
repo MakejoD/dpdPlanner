@@ -46,7 +46,7 @@ import {
   Cancel as CancelIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import api from '../../utils/api';
+import httpClient from '../../utils/api';
 
 const RoleManagement = () => {
   const { hasPermission } = useAuth();
@@ -78,20 +78,21 @@ const RoleManagement = () => {
     setAlert({ ...alert, open: false });
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   const loadData = async () => {
     try {
       setLoading(true);
+      console.log('Cargando datos de roles y permisos...');
+      
       const [rolesResponse, permissionsResponse] = await Promise.all([
-        api.get('/roles?includePermissions=true'),
-        api.get('/permissions')
+        httpClient.get('/roles?includePermissions=true'),
+        httpClient.get('/permissions')
       ]);
       
-      setRoles(rolesResponse.data || []);
-      setPermissions(permissionsResponse.data || []);
+      console.log('Respuesta de roles:', rolesResponse);
+      console.log('Respuesta de permisos:', permissionsResponse);
+      
+      setRoles(rolesResponse || []);
+      setPermissions(permissionsResponse || []);
       setError('');
     } catch (error) {
       console.error('Error cargando datos:', error);
@@ -177,10 +178,10 @@ const RoleManagement = () => {
       };
 
       if (editingRole) {
-        await api.put(`/roles/${editingRole.id}`, dataToSend);
+        await httpClient.put(`/roles/${editingRole.id}`, dataToSend);
         showAlert('Rol actualizado exitosamente', 'success');
       } else {
-        await api.post('/roles', dataToSend);
+        await httpClient.post('/roles', dataToSend);
         showAlert('Rol creado exitosamente', 'success');
       }
 
@@ -200,7 +201,7 @@ const RoleManagement = () => {
     }
 
     try {
-      await api.delete(`/roles/${role.id}`);
+      await httpClient.delete(`/roles/${role.id}`);
       showAlert('Rol eliminado exitosamente', 'success');
       loadData();
     } catch (error) {

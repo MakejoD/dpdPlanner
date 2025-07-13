@@ -40,7 +40,7 @@ import {
   People as PeopleIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import api from '../../utils/api';
+import httpClient from '../../utils/api';
 
 const DepartmentManagement = () => {
   const { user, hasPermission } = useAuth();
@@ -63,8 +63,10 @@ const DepartmentManagement = () => {
   const loadDepartments = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/departments');
-      setDepartments(response.data || []);
+      console.log('Cargando departamentos...');
+      const response = await httpClient.get('/departments');
+      console.log('Respuesta de departamentos:', response);
+      setDepartments(response || []);
     } catch (error) {
       console.error('Error cargando departamentos:', error);
       setDepartments([]); // Asegurar que siempre sea un array
@@ -144,10 +146,10 @@ const DepartmentManagement = () => {
       };
 
       if (editingDepartment) {
-        await api.put(`/departments/${editingDepartment.id}`, dataToSend);
+        await httpClient.put(`/departments/${editingDepartment.id}`, dataToSend);
         showAlert('Departamento actualizado exitosamente', 'success');
       } else {
-        await api.post('/departments', dataToSend);
+        await httpClient.post('/departments', dataToSend);
         showAlert('Departamento creado exitosamente', 'success');
       }
 
@@ -167,7 +169,7 @@ const DepartmentManagement = () => {
     }
 
     try {
-      await api.delete(`/departments/${department.id}`);
+      await httpClient.delete(`/departments/${department.id}`);
       showAlert('Departamento eliminado exitosamente', 'success');
       loadDepartments();
     } catch (error) {

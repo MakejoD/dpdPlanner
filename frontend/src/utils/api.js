@@ -33,14 +33,19 @@ const httpClient = {
   
   post: async (url, data, options = {}) => {
     const token = localStorage.getItem('token')
+    
+    // Determinar si estamos enviando FormData
+    const isFormData = data instanceof FormData
+    
     const response = await fetch(buildUrl(url), {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        // Solo agregar Content-Type si no es FormData (el browser lo agrega automáticamente)
+        ...(!isFormData && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
-      body: JSON.stringify(data),
+      body: isFormData ? data : JSON.stringify(data),
       ...options,
     })
     
@@ -54,14 +59,19 @@ const httpClient = {
   
   put: async (url, data, options = {}) => {
     const token = localStorage.getItem('token')
+    
+    // Determinar si estamos enviando FormData
+    const isFormData = data instanceof FormData
+    
     const response = await fetch(buildUrl(url), {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
+        // Solo agregar Content-Type si no es FormData (el browser lo agrega automáticamente)
+        ...(!isFormData && { 'Content-Type': 'application/json' }),
         ...(token && { Authorization: `Bearer ${token}` }),
         ...options.headers,
       },
-      body: JSON.stringify(data),
+      body: isFormData ? data : JSON.stringify(data),
       ...options,
     })
     

@@ -143,7 +143,15 @@ router.get('/',
               select: { id: true, name: true, code: true }
             },
             progressReports: {
-              select: { id: true, reportingPeriod: true, year: true, quarter: true, status: true },
+              select: { 
+                id: true, 
+                periodType: true, 
+                period: true, 
+                currentValue: true,
+                targetValue: true,
+                executionPercentage: true,
+                status: true 
+              },
               orderBy: { createdAt: 'desc' },
               take: 5
             },
@@ -165,18 +173,20 @@ router.get('/',
           const progressData = await prisma.progressReport.findMany({
             where: {
               indicatorId: indicator.id,
-              year: currentYear,
-              status: 'APPROVED'
+              status: 'aprobado',
+              period: {
+                startsWith: currentYear.toString()
+              }
             },
             select: {
-              achievedValue: true,
-              reportingPeriod: true,
-              quarter: true
+              currentValue: true,
+              periodType: true,
+              period: true
             }
           });
 
           // Calcular progreso acumulado
-          const totalAchieved = progressData.reduce((sum, report) => sum + report.achievedValue, 0);
+          const totalAchieved = progressData.reduce((sum, report) => sum + report.currentValue, 0);
           const progressPercent = indicator.annualTarget > 0 
             ? Math.min((totalAchieved / indicator.annualTarget) * 100, 100)
             : 0;
@@ -275,7 +285,7 @@ router.get('/:id',
         approvedReports: approvedReports.length,
         pendingReports: yearlyReports.filter(r => r.status === 'SUBMITTED').length,
         rejectedReports: yearlyReports.filter(r => r.status === 'REJECTED').length,
-        totalAchieved: approvedReports.reduce((sum, r) => sum + r.achievedValue, 0),
+        totalAchieved: approvedReports.reduce((sum, r) => sum + r.currentValue, 0),
         progressPercent: 0
       };
 

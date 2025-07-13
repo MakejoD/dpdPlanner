@@ -29,9 +29,10 @@ model User {
   department   Department?  @relation(fields: [departmentId], references: [id])
   
   // User assignments and reports
-  activityAssignments ActivityAssignment[]
-  progressReports     ProgressReport[]
-  approvedReports     ProgressReport[]     @relation("ApprovedBy")
+  activityAssignments   ActivityAssignment[]
+  indicatorAssignments  IndicatorAssignment[]
+  progressReports       ProgressReport[]
+  approvedReports       ProgressReport[]     @relation("ApprovedBy")
   
   @@map("users")
 }
@@ -94,9 +95,10 @@ model Department {
   children Department[] @relation("DepartmentHierarchy")
 
   // Relations
-  users               User[]
-  strategicAxes       StrategicAxis[]
-  activityAssignments ActivityAssignment[]
+  users                 User[]
+  strategicAxes         StrategicAxis[]
+  activityAssignments   ActivityAssignment[]
+  indicatorAssignments  IndicatorAssignment[]
 
   @@map("departments")
 }
@@ -183,6 +185,7 @@ model Activity {
   indicators          Indicator[]
   assignments         ActivityAssignment[]
   budgetExecutions    BudgetExecution[]
+  progressReports     ProgressReport[]
 
   @@unique([productId, code])
   @@map("activities")
@@ -220,7 +223,8 @@ model Indicator {
   activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
   // Relations
-  progressReports ProgressReport[]
+  progressReports     ProgressReport[]
+  indicatorAssignments IndicatorAssignment[]
 
   @@map("indicators")
 }
@@ -228,53 +232,54 @@ model Indicator {
 // ========== PROGRESS TRACKING ==========
 
 model ProgressReport {
-  id                 String            @id @default(uuid())
-  reportingPeriod    String // MONTHLY, QUARTERLY, ANNUAL
-  year               Int
-  quarter            Int?              // 1, 2, 3, 4 (for quarterly reports)
-  month              Int?              // 1-12 (for monthly reports)
-  achievedValue      Float
-  executionPercent   Float
-  qualitativeComment String?
-  status             String @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED
-  submittedAt        DateTime?
-  approvedAt         DateTime?
-  rejectedAt         DateTime?
-  rejectionReason    String?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id                  String            @id @default(uuid())
+  periodType          String            // 'trimestral', 'mensual', 'semanal'
+  period              String            // '2024-Q1', '2024-01', '2024-W01'
+  currentValue        Float             @default(0)
+  targetValue         Float             @default(0)
+  executionPercentage Float             @default(0)
+  qualitativeComments String?
+  challenges          String?
+  nextSteps           String?
+  status              String            @default("pendiente") // pendiente, aprobado, rechazado
+  reviewComments      String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  reviewedAt          DateTime?
 
-  // Relations
-  indicatorId String
-  indicator   Indicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+  // Relations - un reporte puede ser para una actividad O un indicador, no ambos
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  indicatorId String?
+  indicator   Indicator? @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
   
   reportedById String
   reportedBy   User @relation(fields: [reportedById], references: [id])
   
-  approvedById String?
-  approvedBy   User? @relation("ApprovedBy", fields: [approvedById], references: [id])
+  reviewedById String?
+  reviewedBy   User? @relation("ApprovedBy", fields: [reviewedById], references: [id])
 
   // File attachments
-  attachments ProgressAttachment[]
+  attachments ProgressReportAttachment[]
 
-  @@unique([indicatorId, reportingPeriod, year, quarter, month])
+  @@unique([reportedById, activityId, indicatorId, periodType, period])
   @@map("progress_reports")
 }
 
-model ProgressAttachment {
+model ProgressReportAttachment {
   id             String   @id @default(uuid())
-  fileName       String
-  originalName   String
-  filePath       String
-  fileSize       Int
-  mimeType       String
+  filename       String
+  filepath       String
+  size           Int
+  mimetype       String
   uploadedAt     DateTime @default(now())
 
   // Relations
   progressReportId String
   progressReport   ProgressReport @relation(fields: [progressReportId], references: [id], onDelete: Cascade)
 
-  @@map("progress_attachments")
+  @@map("progress_report_attachments")
 }
 
 // ========== BUDGET EXECUTION ==========
@@ -337,6 +342,26 @@ model ActivityAssignment {
 
   @@unique([userId, activityId])
   @@map("activity_assignments")
+}
+
+model IndicatorAssignment {
+  id         String   @id @default(uuid())
+  isMain     Boolean  @default(false) // Responsable principal
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  indicatorId String
+  indicator   Indicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+  
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  @@unique([userId, indicatorId])
+  @@map("indicator_assignments")
 }
 
 // ========== ENUMS replaced with strings for SQLite compatibility ==========

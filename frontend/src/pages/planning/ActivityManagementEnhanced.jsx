@@ -527,21 +527,17 @@ const ActivityManagementEnhanced = () => {
                       <ListItemText
                         primary={`${assignment.user.firstName} ${assignment.user.lastName}`}
                         secondary={
-                          <Box>
-                            <Chip
-                              label={statusLabels[assignment.status]}
-                              color={statusColors[assignment.status]}
-                              size="small"
-                              sx={{ mt: 0.5 }}
-                            />
-                            {assignment.progress > 0 && (
-                              <Typography variant="caption" display="block">
-                                Progreso: {assignment.progress}%
-                              </Typography>
-                            )}
-                          </Box>
+                          `${statusLabels[assignment.status]}${assignment.progress > 0 ? ` • Progreso: ${assignment.progress}%` : ''}`
                         }
                       />
+                      
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', mr: 6 }}>
+                        <Chip
+                          label={statusLabels[assignment.status]}
+                          color={statusColors[assignment.status]}
+                          size="small"
+                        />
+                      </Box>
                       
                       <ListItemSecondaryAction>
                         <Stack direction="row" spacing={1}>

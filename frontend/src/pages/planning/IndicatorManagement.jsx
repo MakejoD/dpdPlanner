@@ -47,10 +47,10 @@ import {
   ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+import httpClient from '../../utils/api';
 
 const IndicatorManagement = () => {
-  const { user, token } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [indicators, setIndicators] = useState([]);
   const [levelOptions, setLevelOptions] = useState({
     strategicAxes: [],
@@ -102,14 +102,6 @@ const IndicatorManagement = () => {
     avgProgress: 0
   });
 
-  const apiClient = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
   // Load data
   useEffect(() => {
     loadIndicators();
@@ -144,17 +136,17 @@ const IndicatorManagement = () => {
         }
       }
 
-      const response = await apiClient.get(`/indicators?${params.toString()}`);
-      setIndicators(response.data.indicators);
+      const response = await httpClient.get(`/indicators?${params.toString()}`);
+      setIndicators(response.indicators || []);
       
       // Calcular estadísticas
-      const totalIndicators = response.data.indicators.length;
-      const typeStats = response.data.indicators.reduce((acc, indicator) => {
+      const totalIndicators = (response.indicators || []).length;
+      const typeStats = (response.indicators || []).reduce((acc, indicator) => {
         acc[indicator.type] = (acc[indicator.type] || 0) + 1;
         return acc;
       }, { PRODUCT: 0, RESULT: 0 });
       
-      const levelStats = response.data.indicators.reduce((acc, indicator) => {
+      const levelStats = (response.indicators || []).reduce((acc, indicator) => {
         let level = 'Sin asignar';
         if (indicator.strategicAxis) level = 'Eje Estratégico';
         else if (indicator.objective) level = 'Objetivo';
@@ -166,7 +158,7 @@ const IndicatorManagement = () => {
       }, {});
       
       const avgProgress = totalIndicators > 0 
-        ? response.data.indicators.reduce((sum, ind) => sum + (ind.currentProgress?.progressPercent || 0), 0) / totalIndicators
+        ? (response.indicators || []).reduce((sum, ind) => sum + (ind.currentProgress?.progressPercent || 0), 0) / totalIndicators
         : 0;
 
       setStats({
@@ -186,8 +178,8 @@ const IndicatorManagement = () => {
 
   const loadLevelOptions = async () => {
     try {
-      const response = await apiClient.get(`/indicators/levels/options?year=${filters.year}`);
-      setLevelOptions(response.data);
+      const response = await httpClient.get(`/indicators/levels/options?year=${filters.year}`);
+      setLevelOptions(response || { strategicAxes: [], objectives: [], products: [], activities: [] });
     } catch (error) {
       console.error('Error al cargar opciones de niveles:', error);
     }
@@ -297,10 +289,10 @@ const IndicatorManagement = () => {
       }
 
       if (dialogMode === 'create') {
-        await apiClient.post('/indicators', submitData);
+        await httpClient.post('/indicators', submitData);
         setSuccess('Indicador creado exitosamente');
       } else if (dialogMode === 'edit') {
-        await apiClient.put(`/indicators/${selectedIndicator.id}`, submitData);
+        await httpClient.put(`/indicators/${selectedIndicator.id}`, submitData);
         setSuccess('Indicador actualizado exitosamente');
       }
 
@@ -322,7 +314,7 @@ const IndicatorManagement = () => {
 
     try {
       setLoading(true);
-      await apiClient.delete(`/indicators/${indicator.id}`);
+      await httpClient.delete(`/indicators/${indicator.id}`);
       setSuccess('Indicador eliminado exitosamente');
       loadIndicators();
     } catch (error) {

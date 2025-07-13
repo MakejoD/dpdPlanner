@@ -29,7 +29,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import StrategicAxesManagement from './StrategicAxesManagement';
 import ObjectiveManagement from './ObjectiveManagement';
 import ProductManagement from './ProductManagement';
-import ActivityManagementEnhanced from './ActivityManagementEnhanced';
+import ActivityManagement from './ActivityManagement';
 import IndicatorManagement from './IndicatorManagement';
 
 function TabPanel({ children, value, index, ...other }) {
@@ -68,7 +68,7 @@ const StrategicPlanning = () => {
       status: 'active',
       progress: 100,
       color: 'primary',
-      count: '5',
+      count: '6',
       subtitle: 'Ejes configurados'
     },
     {
@@ -79,7 +79,7 @@ const StrategicPlanning = () => {
       status: 'active',
       progress: 100,
       color: 'secondary',
-      count: '12',
+      count: '16',
       subtitle: 'Objetivos estratégicos'
     },
     {
@@ -90,7 +90,7 @@ const StrategicPlanning = () => {
       status: 'active',
       progress: 100,
       color: 'info',
-      count: '33',
+      count: '34',
       subtitle: 'Productos y servicios'
     },
     {
@@ -101,7 +101,7 @@ const StrategicPlanning = () => {
       status: 'active',
       progress: 100,
       color: 'warning',
-      count: '51',
+      count: '33',
       subtitle: 'Actividades planificadas'
     },
     {
@@ -112,7 +112,7 @@ const StrategicPlanning = () => {
       status: 'active',
       progress: 100,
       color: 'success',
-      count: '25',
+      count: '15',
       subtitle: 'Indicadores de gestión'
     }
   ];
@@ -324,7 +324,7 @@ const StrategicPlanning = () => {
         </TabPanel>
         
         <TabPanel value={activeTab} index={3}>
-          <ActivityManagementEnhanced />
+          <ActivityManagement />
         </TabPanel>
         
         <TabPanel value={activeTab} index={4}>

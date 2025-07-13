@@ -15,8 +15,7 @@ const objectiveRoutes = require('./routes/objectives');
 const productRoutes = require('./routes/products');
 const activityRoutes = require('./routes/activities');
 const indicatorRoutes = require('./routes/indicators');
-// const progressReportRoutes = require('./routes/progressReports');
-// const progressReportRoutes = require('./routes/progressReports');
+const progressReportRoutes = require('./routes/progressReports');
 // const budgetRoutes = require('./routes/budget');
 // const dashboardRoutes = require('./routes/dashboard');
 
@@ -78,8 +77,7 @@ app.use('/api/objectives', objectiveRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/activities', activityRoutes);
 app.use('/api/indicators', indicatorRoutes);
-// app.use('/api/progress-reports', progressReportRoutes);
-// app.use('/api/progress-reports', progressReportRoutes);
+app.use('/api/progress-reports', progressReportRoutes);
 // app.use('/api/budget', budgetRoutes);
 // app.use('/api/dashboard', dashboardRoutes);
 

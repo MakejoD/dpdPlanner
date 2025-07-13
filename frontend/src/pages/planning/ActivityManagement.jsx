@@ -116,8 +116,25 @@ const ActivityManagement = () => {
     }
   });
 
+  // Agregar interceptor para debugging
+  apiClient.interceptors.response.use(
+    (response) => {
+      if (response.config.url?.includes('/users')) {
+        console.log(`✅ Usuarios cargados: ${response.data.users?.length || 0}`);
+      }
+      return response;
+    },
+    (error) => {
+      if (error.config?.url?.includes('/users')) {
+        console.error(`❌ Error cargando usuarios:`, error.response?.data);
+      }
+      return Promise.reject(error);
+    }
+  );
+
   // Load data
   useEffect(() => {
+    console.log('🚀 ActivityManagement: Iniciando carga de datos...');
     loadActivities();
     loadProducts();
     loadUsers();
@@ -135,13 +152,13 @@ const ActivityManagement = () => {
       if (filters.isActive !== null) params.append('isActive', filters.isActive);
 
       const response = await apiClient.get(`/activities?${params.toString()}`);
-      setActivities(response.data.activities || []);
+      setActivities(response.data.data || []); // Cambio aquí: usar response.data.data
       
       // Calcular estadísticas
-      const total = response.data.activities?.length || 0;
-      const active = response.data.activities?.filter(a => a.isActive).length || 0;
-      const withAssignments = response.data.activities?.filter(a => a.assignments?.length > 0).length || 0;
-      const withIndicators = response.data.activities?.filter(a => a._count?.indicators > 0).length || 0;
+      const total = response.data.data?.length || 0;
+      const active = response.data.data?.filter(a => a.isActive).length || 0;
+      const withAssignments = response.data.data?.filter(a => a.assignments?.length > 0).length || 0;
+      const withIndicators = response.data.data?.filter(a => a._count?.indicators > 0).length || 0;
 
       setStats({
         total,
@@ -169,10 +186,21 @@ const ActivityManagement = () => {
 
   const loadUsers = async () => {
     try {
+      console.log('🔍 Cargando usuarios...');
       const response = await apiClient.get('/users?isActive=true');
+      console.log('📊 Respuesta de usuarios:', response.data);
+      console.log('👥 Total de usuarios encontrados:', response.data.users?.length || 0);
+      
       setUsers(response.data.users || []);
+      
+      if (response.data.users?.length > 0) {
+        console.log('✅ Usuarios cargados exitosamente:', response.data.users.map(u => `${u.firstName} ${u.lastName}`));
+      } else {
+        console.log('⚠️ No se encontraron usuarios');
+      }
     } catch (error) {
-      console.error('Error al cargar usuarios:', error);
+      console.error('❌ Error al cargar usuarios:', error);
+      setError('Error al cargar la lista de usuarios');
     }
   };
 
@@ -263,6 +291,12 @@ const ActivityManagement = () => {
   };
 
   const handleOpenAssignmentDialog = (activity) => {
+    console.log('🎯 Abriendo diálogo de asignación...');
+    console.log('📋 Actividad seleccionada:', activity.name);
+    console.log('👥 Estado actual de usuarios:', users);
+    console.log('📊 Total usuarios disponibles:', users.length);
+    console.log('🔗 Asignaciones actuales de la actividad:', activity.assignments);
+    
     setSelectedActivityForAssignment(activity);
     setAssignmentData({
       userId: '',
@@ -275,7 +309,7 @@ const ActivityManagement = () => {
     try {
       setLoading(true);
       
-      await apiClient.post(`/activities/${selectedActivityForAssignment.id}/assignments`, assignmentData);
+      await apiClient.post(`/activities/${selectedActivityForAssignment.id}/assign`, assignmentData);
       setSuccess('Usuario asignado exitosamente');
       setOpenAssignmentDialog(false);
       loadActivities();
@@ -740,17 +774,57 @@ const ActivityManagement = () => {
                     onChange={(e) => setAssignmentData({ ...assignmentData, userId: e.target.value })}
                     label="Usuario"
                   >
-                    {users.filter(user => 
-                      !selectedActivityForAssignment?.assignments?.some(assignment => 
-                        assignment.userId === user.id
-                      )
-                    ).map((user) => (
-                      <MenuItem key={user.id} value={user.id}>
-                        {user.firstName} {user.lastName} - {user.email}
-                      </MenuItem>
-                    ))}
+                    {(() => {
+                      console.log('🔍 Evaluando usuarios para el Select...');
+                      console.log('👥 Total usuarios cargados:', users.length);
+                      console.log('📋 Actividad seleccionada:', selectedActivityForAssignment?.name);
+                      console.log('🔗 Asignaciones de la actividad:', selectedActivityForAssignment?.assignments);
+                      
+                      const filteredUsers = users.filter(user => {
+                        // Si no hay actividad seleccionada, mostrar todos los usuarios
+                        if (!selectedActivityForAssignment?.assignments) {
+                          console.log(`✅ Usuario ${user.firstName} ${user.lastName} - Sin restricciones de asignación`);
+                          return true;
+                        }
+                        // Filtrar usuarios ya asignados
+                        const isAlreadyAssigned = selectedActivityForAssignment.assignments.some(assignment => 
+                          assignment.userId === user.id
+                        );
+                        
+                        if (isAlreadyAssigned) {
+                          console.log(`❌ Usuario ${user.firstName} ${user.lastName} - Ya está asignado`);
+                        } else {
+                          console.log(`✅ Usuario ${user.firstName} ${user.lastName} - Disponible para asignar`);
+                        }
+                        
+                        return !isAlreadyAssigned;
+                      });
+                      
+                      console.log('📊 Usuarios filtrados finales:', filteredUsers.length);
+                      
+                      return filteredUsers.map((user) => (
+                        <MenuItem key={user.id} value={user.id}>
+                          {user.firstName} {user.lastName} - {user.email}
+                        </MenuItem>
+                      ));
+                    })()}
                   </Select>
                 </FormControl>
+                {users.length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    No hay usuarios disponibles
+                  </Typography>
+                )}
+                {users.length > 0 && users.filter(user => {
+                  if (!selectedActivityForAssignment?.assignments) return true;
+                  return !selectedActivityForAssignment.assignments.some(assignment => 
+                    assignment.userId === user.id
+                  );
+                }).length === 0 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                    Todos los usuarios ya están asignados a esta actividad
+                  </Typography>
+                )}
               </Grid>
               
               <Grid item xs={12}>

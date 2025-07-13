@@ -42,26 +42,26 @@ const LoginPage = () => {
   // Datos de usuarios de prueba
   const quickLoginUsers = [
     {
-      name: 'Administrador',
+      name: 'Administrador del Sistema',
       email: 'admin@poa.gov',
       password: 'admin123',
-      role: 'Administrador del Sistema',
+      role: 'Administrador',
       icon: <SupervisorIcon />,
       color: '#d32f2f',
       description: 'Acceso completo al sistema'
     },
     {
-      name: 'Director de Planificación',
+      name: 'Carlos Ramírez Vega',
       email: 'planificacion@poa.gov',
-      password: '123456',
+      password: 'planificacion123',
       role: 'Director de Planificación',
       icon: <PersonIcon />,
       color: '#1976d2',
       description: 'Formulación y seguimiento del POA'
     },
     {
-      name: 'Técnico',
-      email: 'tecnico@poa.gov',
+      name: 'Juan Pérez García',
+      email: 'juan.perez@poa.gov',
       password: '123456',
       role: 'Técnico Registrador',
       icon: <EngineeringIcon />,
@@ -299,55 +299,58 @@ const LoginPage = () => {
             <Collapse in={showQuickLogin}>
               <Grid container spacing={2}>
                 {quickLoginUsers.map((user, index) => (
-                  <Grid item xs={12} sm={4} key={index}>
+                  <Grid item xs={12} key={index}>
                     <Card 
                       sx={{ 
                         cursor: 'pointer',
                         transition: 'all 0.3s',
                         border: '2px solid transparent',
                         '&:hover': {
-                          transform: 'translateY(-4px)',
+                          transform: 'translateY(-2px)',
                           boxShadow: 4,
                           borderColor: user.color
                         }
                       }}
                       onClick={() => handleQuickLogin(user)}
                     >
-                      <CardContent sx={{ textAlign: 'center', p: 2 }}>
+                      <CardContent sx={{ display: 'flex', alignItems: 'center', p: 2.5 }}>
                         <Box
                           sx={{
-                            display: 'inline-flex',
+                            display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            width: 50,
-                            height: 50,
+                            width: 60,
+                            height: 60,
                             borderRadius: '50%',
                             backgroundColor: user.color,
                             color: 'white',
-                            mb: 1
+                            mr: 2,
+                            flexShrink: 0
                           }}
                         >
                           {user.icon}
                         </Box>
-                        <Typography variant="h6" sx={{ fontSize: '1rem', fontWeight: 600, mb: 0.5 }}>
-                          {user.name}
-                        </Typography>
-                        <Chip 
-                          label={user.role} 
-                          size="small" 
-                          sx={{ 
-                            backgroundColor: `${user.color}20`,
-                            color: user.color,
-                            mb: 1,
-                            fontSize: '0.75rem'
-                          }} 
-                        />
-                        <Typography variant="caption" display="block" color="text.secondary">
-                          {user.description}
-                        </Typography>
-                        <Typography variant="caption" display="block" sx={{ mt: 1, fontWeight: 500 }}>
-                          {user.email}
-                        </Typography>
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, mb: 0.5 }}>
+                            {user.name}
+                          </Typography>
+                          <Chip 
+                            label={user.role} 
+                            size="small" 
+                            sx={{ 
+                              backgroundColor: `${user.color}20`,
+                              color: user.color,
+                              mb: 0.5,
+                              fontSize: '0.75rem'
+                            }} 
+                          />
+                          <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                            {user.description}
+                          </Typography>
+                          <Typography variant="caption" sx={{ fontWeight: 500, color: 'text.primary' }}>
+                            {user.email}
+                          </Typography>
+                        </Box>
                       </CardContent>
                     </Card>
                   </Grid>

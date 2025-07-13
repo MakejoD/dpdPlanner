@@ -616,50 +616,59 @@ router.delete('/:id',
 router.post('/:id/assign',
   authenticateToken,
   authorize('update', 'activity'),
-  [
-    body('userId')
-      .isUUID()
-      .withMessage('userId debe ser un UUID válido'),
-    body('role')
-      .optional()
-      .isIn(['RESPONSIBLE', 'COLLABORATOR', 'SUPERVISOR'])
-      .withMessage('role debe ser RESPONSIBLE, COLLABORATOR o SUPERVISOR'),
-    body('status')
-      .optional()
-      .isIn(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
-      .withMessage('status debe ser válido')
-  ],
-  handleValidationErrors,
+  // Temporalmente comentar la validación para debugging
+  // [
+  //   body('userId')
+  //     .isUUID()
+  //     .withMessage('userId debe ser un UUID válido'),
+  //   body('isMain')
+  //     .optional()
+  //     .isBoolean()
+  //     .withMessage('isMain debe ser un valor booleano')
+  // ],
+  // handleValidationErrors,
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { userId, role = 'COLLABORATOR', status = 'NOT_STARTED' } = req.body;
+      const { userId, isMain = false } = req.body;
+
+      console.log('🔗 Iniciando asignación de usuario...');
+      console.log('📋 Activity ID:', id);
+      console.log('👤 User ID:', userId);
+      console.log('🎯 Is Main:', isMain);
 
       // Verificar que la actividad existe
+      console.log('🔍 Verificando actividad...');
       const activity = await prisma.activity.findUnique({
         where: { id }
       });
 
       if (!activity) {
+        console.log('❌ Actividad no encontrada');
         return res.status(404).json({
           error: 'Actividad no encontrada',
           message: 'La actividad especificada no existe'
         });
       }
+      console.log('✅ Actividad encontrada:', activity.name);
 
       // Verificar que el usuario existe
+      console.log('🔍 Verificando usuario...');
       const user = await prisma.user.findUnique({
         where: { id: userId }
       });
 
       if (!user) {
+        console.log('❌ Usuario no encontrado');
         return res.status(404).json({
           error: 'Usuario no encontrado',
           message: 'El usuario especificado no existe'
         });
       }
+      console.log('✅ Usuario encontrado:', user.firstName, user.lastName);
 
       // Verificar si ya existe la asignación
+      console.log('🔍 Verificando asignación existente...');
       const existingAssignment = await prisma.activityAssignment.findFirst({
         where: {
           activityId: id,
@@ -668,19 +677,20 @@ router.post('/:id/assign',
       });
 
       if (existingAssignment) {
+        console.log('❌ Asignación ya existe');
         return res.status(409).json({
           error: 'Asignación duplicada',
           message: 'El usuario ya está asignado a esta actividad'
         });
       }
+      console.log('✅ No hay asignación existente');
 
+      console.log('🔨 Creando nueva asignación...');
       const assignment = await prisma.activityAssignment.create({
         data: {
           activityId: id,
           userId,
-          role,
-          status,
-          assignedAt: new Date()
+          isMain
         },
         include: {
           user: {
@@ -693,6 +703,7 @@ router.post('/:id/assign',
           }
         }
       });
+      console.log('✅ Asignación creada exitosamente');
 
       logger.info(`Usuario asignado a actividad: ${user.email} -> ${activity.code}`);
 
@@ -702,10 +713,12 @@ router.post('/:id/assign',
       });
 
     } catch (error) {
+      console.error('❌ Error detallado en asignación:', error);
       logger.error('Error al asignar usuario:', error);
       res.status(500).json({
         error: 'Error interno del servidor',
-        message: 'No se pudo asignar el usuario'
+        message: 'No se pudo asignar el usuario',
+        details: error.message
       });
     }
   }

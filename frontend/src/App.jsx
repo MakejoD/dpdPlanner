@@ -14,6 +14,7 @@ import UserManagement from './pages/admin/UserManagement'
 import RoleManagement from './pages/admin/RoleManagement'
 import DepartmentManagement from './pages/admin/DepartmentManagement'
 import StrategicPlanning from './pages/planning/StrategicPlanning'
+import TestUserSelect from './pages/planning/TestUserSelect'
 import ProgressTracking from './pages/tracking/ProgressTracking'
 import BudgetExecution from './pages/budget/BudgetExecution'
 import Reports from './pages/reports/Reports'
@@ -116,6 +117,16 @@ function App() {
                     element={
                       <ProtectedRoute requiredPermission="read:strategic_axis">
                         <StrategicPlanning />
+                      </ProtectedRoute>
+                    } 
+                  />
+
+                  {/* Test de usuarios - TEMPORAL */}
+                  <Route 
+                    path="/test-users" 
+                    element={
+                      <ProtectedRoute>
+                        <TestUserSelect />
                       </ProtectedRoute>
                     } 
                   />

@@ -55,7 +55,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+import { httpClient } from '../../utils/api';
 
 const ActivityManagement = () => {
   const { user, token } = useAuth();
@@ -109,29 +109,8 @@ const ActivityManagement = () => {
     withIndicators: 0
   });
 
-  const apiClient = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
-  // Agregar interceptor para debugging
-  apiClient.interceptors.response.use(
-    (response) => {
-      if (response.config.url?.includes('/users')) {
-        console.log(`✅ Usuarios cargados: ${response.data.users?.length || 0}`);
-      }
-      return response;
-    },
-    (error) => {
-      if (error.config?.url?.includes('/users')) {
-        console.error(`❌ Error cargando usuarios:`, error.response?.data);
-      }
-      return Promise.reject(error);
-    }
-  );
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   // Load data
   useEffect(() => {
@@ -152,25 +131,32 @@ const ActivityManagement = () => {
       if (filters.search) params.append('search', filters.search);
       if (filters.isActive !== null) params.append('isActive', filters.isActive);
 
-      const response = await apiClient.get(`/activities?${params.toString()}`);
-      setActivities(response.data.data || []); // Cambio aquí: usar response.data.data
+      const response = await httpClient.get(`/activities?${params.toString()}`);
       
-      // Calcular estadísticas
-      const total = response.data.data?.length || 0;
-      const active = response.data.data?.filter(a => a.isActive).length || 0;
-      const withAssignments = response.data.data?.filter(a => a.assignments?.length > 0).length || 0;
-      const withIndicators = response.data.data?.filter(a => a._count?.indicators > 0).length || 0;
+      if (response.success) {
+        const activitiesData = response.data.activities || response.data;
+        setActivities(activitiesData || []);
+        
+        // Calcular estadísticas
+        const total = activitiesData?.length || 0;
+        const active = activitiesData?.filter(a => a.isActive).length || 0;
+        const withAssignments = activitiesData?.filter(a => a.assignments?.length > 0).length || 0;
+        const withIndicators = activitiesData?.filter(a => a._count?.indicators > 0).length || 0;
 
-      setStats({
-        total,
-        active,
-        withAssignments,
-        withIndicators
-      });
+        setStats({
+          total,
+          active,
+          withAssignments,
+          withIndicators
+        });
+      } else {
+        throw new Error(response.message || 'Error al cargar actividades');
+      }
 
     } catch (error) {
       console.error('Error al cargar actividades:', error);
       setError('Error al cargar las actividades');
+      setSnackbar({ open: true, message: 'Error al cargar las actividades', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -178,8 +164,10 @@ const ActivityManagement = () => {
 
   const loadProducts = async () => {
     try {
-      const response = await apiClient.get('/products?isActive=true');
-      setProducts(response.data || []);
+      const response = await httpClient.get('/products?isActive=true');
+      if (response.success) {
+        setProducts(response.data || []);
+      }
     } catch (error) {
       console.error('Error al cargar productos:', error);
     }

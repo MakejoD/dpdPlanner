@@ -13,8 +13,10 @@ const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
-      error: 'Datos inválidos',
-      details: errors.array()
+      success: false,
+      data: null,
+      message: 'Datos inválidos',
+      errors: errors.array()
     });
   }
   next();
@@ -86,11 +88,16 @@ router.get('/',
         filters: { objectiveId, type, active }
       });
 
-      res.json(products);
+      res.json({
+        success: true,
+        data: products,
+        message: `${products.length} productos encontrados`
+      });
     } catch (error) {
       logger.error('Error al obtener productos:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
+        success: false,
+        data: null,
         message: 'Error al obtener los productos'
       });
     }
@@ -142,7 +149,8 @@ router.get('/:id',
 
       if (!product) {
         return res.status(404).json({
-          error: 'Producto no encontrado',
+          success: false,
+          data: null,
           message: 'El producto especificado no existe'
         });
       }
@@ -153,11 +161,16 @@ router.get('/:id',
         productId: id
       });
 
-      res.json(product);
+      res.json({
+        success: true,
+        data: product,
+        message: 'Producto encontrado'
+      });
     } catch (error) {
       logger.error('Error al obtener producto:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
+        success: false,
+        data: null,
         message: 'Error al obtener el producto'
       });
     }
@@ -214,7 +227,8 @@ router.post('/',
 
       if (!objective) {
         return res.status(404).json({
-          error: 'Objetivo no encontrado',
+          success: false,
+          data: null,
           message: 'El objetivo especificado no existe'
         });
       }
@@ -229,7 +243,8 @@ router.post('/',
 
       if (existingProduct) {
         return res.status(409).json({
-          error: 'Código duplicado',
+          success: false,
+          data: null,
           message: `Ya existe un producto con el código "${code}" en este objetivo`
         });
       }
@@ -269,11 +284,16 @@ router.post('/',
         objectiveId
       });
 
-      res.status(201).json(product);
+      res.status(201).json({
+        success: true,
+        data: product,
+        message: `Producto "${product.name}" creado exitosamente`
+      });
     } catch (error) {
       logger.error('Error al crear producto:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
+        success: false,
+        data: null,
         message: 'Error al crear el producto'
       });
     }
@@ -361,7 +381,8 @@ router.put('/:id',
 
       if (duplicateProduct) {
         return res.status(409).json({
-          error: 'Código duplicado',
+          success: false,
+          data: null,
           message: `Ya existe otro producto con el código "${code}" en este objetivo`
         });
       }
@@ -402,11 +423,16 @@ router.put('/:id',
         productId: id
       });
 
-      res.json(updatedProduct);
+      res.json({
+        success: true,
+        data: updatedProduct,
+        message: `Producto "${updatedProduct.name}" actualizado exitosamente`
+      });
     } catch (error) {
       logger.error('Error al actualizar producto:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
+        success: false,
+        data: null,
         message: 'Error al actualizar el producto'
       });
     }
@@ -444,7 +470,8 @@ router.delete('/:id',
 
       if (!product) {
         return res.status(404).json({
-          error: 'Producto no encontrado',
+          success: false,
+          data: null,
           message: 'El producto especificado no existe'
         });
       }
@@ -452,14 +479,16 @@ router.delete('/:id',
       // Verificar dependencias
       if (product._count.activities > 0) {
         return res.status(409).json({
-          error: 'Producto tiene dependencias',
+          success: false,
+          data: null,
           message: `No se puede eliminar el producto porque tiene ${product._count.activities} actividades asociadas`
         });
       }
 
       if (product._count.indicators > 0) {
         return res.status(409).json({
-          error: 'Producto tiene dependencias',
+          success: false,
+          data: null,
           message: `No se puede eliminar el producto porque tiene ${product._count.indicators} indicadores asociados`
         });
       }
@@ -475,17 +504,19 @@ router.delete('/:id',
       });
 
       res.json({
-        message: 'Producto eliminado exitosamente',
-        deletedProduct: {
+        success: true,
+        data: {
           id: product.id,
           code: product.code,
           name: product.name
-        }
+        },
+        message: `Producto "${product.name}" eliminado exitosamente`
       });
     } catch (error) {
       logger.error('Error al eliminar producto:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
+        success: false,
+        data: null,
         message: 'Error al eliminar el producto'
       });
     }

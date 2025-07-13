@@ -97,6 +97,30 @@ const validateStrategicAxis = [
     .withMessage('El ID de departamento debe ser válido')
 ];
 
+// Validaciones para objetivos
+const validateObjective = [
+  body('name')
+    .trim()
+    .isLength({ min: 5, max: 200 })
+    .withMessage('El nombre del objetivo debe tener entre 5 y 200 caracteres'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('La descripción no puede exceder 1000 caracteres'),
+  body('code')
+    .trim()
+    .isLength({ min: 2, max: 20 })
+    .withMessage('El código debe tener entre 2 y 20 caracteres'),
+  body('strategicAxisId')
+    .isUUID()
+    .withMessage('Debe proporcionar un ID de eje estratégico válido'),
+  body('order')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('El orden debe ser un número entero positivo')
+];
+
 // Validaciones para indicadores
 const validateIndicator = [
   body('name')
@@ -167,6 +191,91 @@ const validateProgressReport = [
     .withMessage('Debe proporcionar un ID de indicador válido')
 ];
 
+// Validaciones para productos/servicios
+const validateProduct = [
+  body('name')
+    .trim()
+    .isLength({ min: 3, max: 255 })
+    .withMessage('El nombre debe tener entre 3 y 255 caracteres'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('La descripción no puede exceder 1000 caracteres'),
+  body('code')
+    .trim()
+    .isLength({ min: 2, max: 20 })
+    .withMessage('El código debe tener entre 2 y 20 caracteres')
+    .matches(/^[A-Z0-9-]+$/)
+    .withMessage('El código solo puede contener letras mayúsculas, números y guiones'),
+  body('type')
+    .isIn(['PRODUCT', 'SERVICE'])
+    .withMessage('El tipo debe ser PRODUCT o SERVICE'),
+  body('objectiveId')
+    .isUUID()
+    .withMessage('objectiveId debe ser un UUID válido'),
+  body('order')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('El orden debe ser un número entero no negativo'),
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive debe ser true o false')
+];
+
+// Validaciones para actividades
+const validateActivity = [
+  body('name')
+    .trim()
+    .isLength({ min: 3, max: 255 })
+    .withMessage('El nombre debe tener entre 3 y 255 caracteres'),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 1000 })
+    .withMessage('La descripción no puede exceder 1000 caracteres'),
+  body('code')
+    .trim()
+    .isLength({ min: 2, max: 30 })
+    .withMessage('El código debe tener entre 2 y 30 caracteres')
+    .matches(/^[A-Z0-9.-]+$/)
+    .withMessage('El código solo puede contener letras mayúsculas, números, puntos y guiones'),
+  body('productId')
+    .isUUID()
+    .withMessage('productId debe ser un UUID válido'),
+  body('startDate')
+    .isISO8601()
+    .withMessage('startDate debe ser una fecha válida'),
+  body('endDate')
+    .isISO8601()
+    .withMessage('endDate debe ser una fecha válida'),
+  body('responsibleId')
+    .optional()
+    .isUUID()
+    .withMessage('responsibleId debe ser un UUID válido'),
+  body('order')
+    .optional()
+    .isInt({ min: 0 })
+    .withMessage('El orden debe ser un número entero no negativo'),
+  body('priority')
+    .optional()
+    .isIn(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'])
+    .withMessage('La prioridad debe ser LOW, MEDIUM, HIGH o CRITICAL'),
+  body('status')
+    .optional()
+    .isIn(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'])
+    .withMessage('El estado debe ser NOT_STARTED, IN_PROGRESS, COMPLETED o CANCELLED'),
+  body('budgetAllocated')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('El presupuesto asignado debe ser un número positivo'),
+  body('isActive')
+    .optional()
+    .isBoolean()
+    .withMessage('isActive debe ser true o false')
+];
+
 // Middleware para manejar errores de validación
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -190,7 +299,10 @@ module.exports = {
   validateRole,
   validateDepartment,
   validateStrategicAxis,
+  validateObjective,
   validateIndicator,
   validateProgressReport,
+  validateProduct,
+  validateActivity,
   handleValidationErrors
 };

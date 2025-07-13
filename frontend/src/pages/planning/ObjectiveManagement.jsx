@@ -30,7 +30,8 @@ import {
   Grid,
   FormControlLabel,
   Switch,
-  Fab
+  Fab,
+  Snackbar
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,8 +40,11 @@ import {
   ExpandMore as ExpandMoreIcon,
   TrackChanges as TargetIcon
 } from '@mui/icons-material';
+import { useAuth } from '../../contexts/AuthContext';
+import { httpClient } from '../../utils/api';
 
 const ObjectiveManagement = () => {
+  const { user, hasPermission } = useAuth();
   const [objectives, setObjectives] = useState([]);
   const [strategicAxes, setStrategicAxes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +54,7 @@ const ObjectiveManagement = () => {
   const [editingObjective, setEditingObjective] = useState(null);
   const [selectedAxisId, setSelectedAxisId] = useState('');
   const [groupByAxis, setGroupByAxis] = useState(true);
+  const [alert, setAlert] = useState({ open: false, message: '', severity: 'info' });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -63,28 +68,46 @@ const ObjectiveManagement = () => {
     loadData();
   }, []);
 
+  const showAlert = (message, severity = 'info') => {
+    setAlert({ open: true, message, severity });
+  };
+
+  const handleCloseAlert = () => {
+    setAlert({ open: false, message: '', severity: 'info' });
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      // Cargar ejes estratégicos
-      const axesResponse = await fetch('http://localhost:3001/api/strategic-axes', { headers });
-      const axesData = await axesResponse.json();
-      setStrategicAxes(axesData);
-
-      // Cargar objetivos
-      const objectivesResponse = await fetch('http://localhost:3001/api/objectives', { headers });
-      const objectivesData = await objectivesResponse.json();
-      setObjectives(objectivesData);
-
+      
+      console.log('Cargando datos de objetivos...');
+      
+      // Cargar ejes estratégicos y objetivos
+      const [axesResponse, objectivesResponse] = await Promise.all([
+        httpClient.get('/strategic-axes'),
+        httpClient.get('/objectives')
+      ]);
+      
+      console.log('Respuesta de ejes estratégicos:', axesResponse);
+      console.log('Respuesta de objetivos:', objectivesResponse);
+      
+      // Usar la nueva estructura de respuesta de las APIs
+      setStrategicAxes(axesResponse?.data || []);
+      setObjectives(objectivesResponse?.data || []);
+      
+      if (!axesResponse?.success) {
+        showAlert(axesResponse?.message || 'Error al cargar ejes estratégicos', 'error');
+      }
+      
+      if (!objectivesResponse?.success) {
+        showAlert(objectivesResponse?.message || 'Error al cargar objetivos', 'error');
+      }
+      
       setError('');
     } catch (err) {
-      setError('Error al cargar los datos: ' + err.message);
+      console.error('Error cargando datos:', err);
+      setError('Error al cargar datos del sistema');
+      showAlert(err.message || 'Error al cargar datos', 'error');
     } finally {
       setLoading(false);
     }
@@ -127,57 +150,43 @@ const ObjectiveManagement = () => {
 
   const handleSubmit = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+      const dataToSend = {
+        name: formData.name,
+        description: formData.description,
+        code: formData.code,
+        strategicAxisId: formData.strategicAxisId,
+        order: formData.order || 0
       };
 
-      const method = editingObjective ? 'PUT' : 'POST';
-      const url = editingObjective 
-        ? `http://localhost:3001/api/objectives/${editingObjective.id}`
-        : 'http://localhost:3001/api/objectives';
-
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al guardar el objetivo');
+      let response;
+      if (editingObjective) {
+        response = await httpClient.put(`/objectives/${editingObjective.id}`, dataToSend);
+        showAlert(response.message || 'Objetivo actualizado exitosamente', 'success');
+      } else {
+        response = await httpClient.post('/objectives', dataToSend);
+        showAlert(response.message || 'Objetivo creado exitosamente', 'success');
       }
 
-      setSuccess(editingObjective ? 'Objetivo actualizado exitosamente' : 'Objetivo creado exitosamente');
       handleCloseDialog();
       loadData();
     } catch (err) {
-      setError('Error al guardar: ' + err.message);
+      console.error('Error guardando objetivo:', err);
+      showAlert(err.message || 'Error al guardar el objetivo', 'error');
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Está seguro de que desea eliminar este objetivo?')) {
+  const handleDelete = async (objective) => {
+    if (!window.confirm(`¿Está seguro de que desea eliminar el objetivo "${objective.name}"?`)) {
       return;
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/objectives/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar el objetivo');
-      }
-
-      setSuccess('Objetivo eliminado exitosamente');
+      const response = await httpClient.delete(`/objectives/${objective.id}`);
+      showAlert(response.message || 'Objetivo eliminado exitosamente', 'success');
       loadData();
     } catch (err) {
-      setError('Error al eliminar: ' + err.message);
+      console.error('Error eliminando objetivo:', err);
+      showAlert(err.message || 'Error al eliminar el objetivo', 'error');
     }
   };
 
@@ -360,7 +369,7 @@ const ObjectiveManagement = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDelete(objective.id)}
+                              onClick={() => handleDelete(objective)}
                               color="error"
                             >
                               <DeleteIcon />
@@ -445,7 +454,7 @@ const ObjectiveManagement = () => {
                       <EditIcon />
                     </IconButton>
                     <IconButton
-                      onClick={() => handleDelete(objective.id)}
+                      onClick={() => handleDelete(objective)}
                       color="error"
                     >
                       <DeleteIcon />
@@ -564,6 +573,22 @@ const ObjectiveManagement = () => {
       >
         <AddIcon />
       </Fab>
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar 
+        open={alert.open} 
+        autoHideDuration={6000} 
+        onClose={handleCloseAlert}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      >
+        <Alert 
+          onClose={handleCloseAlert} 
+          severity={alert.severity} 
+          sx={{ width: '100%' }}
+        >
+          {alert.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -156,9 +156,9 @@ const DashboardLayout = ({ children }) => {
       ]
     },
     {
-      title: 'Presupuesto',
+      title: 'Ejecución Presupuestaria',
       icon: <MoneyIcon />,
-      path: '/budget',
+      path: '/budget/execution',
       permission: 'read:budget'
     },
     {

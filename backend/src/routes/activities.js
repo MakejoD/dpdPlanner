@@ -13,8 +13,10 @@ const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
-      error: 'Datos de entrada inválidos',
-      details: errors.array()
+      success: false,
+      data: null,
+      message: 'Datos de entrada inválidos',
+      errors: errors.array()
     });
   }
   next();
@@ -179,19 +181,24 @@ router.get('/',
       ]);
 
       res.json({
-        data: activities,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
+        success: true,
+        data: {
+          activities,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total,
+            pages: Math.ceil(total / parseInt(limit))
+          }
+        },
+        message: `${activities.length} actividades encontradas`
       });
 
     } catch (error) {
       logger.error('Error al obtener actividades:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
+        success: false,
+        data: null,
         message: 'No se pudieron obtener las actividades'
       });
     }
@@ -737,12 +744,17 @@ router.get('/:id',
 
       if (!activity) {
         return res.status(404).json({
-          error: 'Actividad no encontrada',
+          success: false,
+          data: null,
           message: 'La actividad especificada no existe'
         });
       }
 
-      res.json(activity);
+      res.json({
+        success: true,
+        data: activity,
+        message: 'Actividad encontrada'
+      });
 
     } catch (error) {
       logger.error('Error al obtener actividad:', error);
@@ -1019,14 +1031,16 @@ router.put('/:id',
       logger.info(`Actividad actualizada: ${activity.code} - ${activity.name}`);
 
       res.json({
-        message: 'Actividad actualizada exitosamente',
-        data: activity
+        success: true,
+        data: activity,
+        message: 'Actividad actualizada exitosamente'
       });
 
     } catch (error) {
       logger.error('Error al actualizar actividad:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
+        success: false,
+        data: null,
         message: 'No se pudo actualizar la actividad'
       });
     }

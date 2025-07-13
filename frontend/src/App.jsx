@@ -197,8 +197,9 @@ function App() {
                   />
 
                   {/* Ejecución presupuestaria */}
+                  <Route path="/budget" element={<Navigate to="/budget/execution" replace />} />
                   <Route 
-                    path="/budget/*" 
+                    path="/budget/execution" 
                     element={
                       <ProtectedRoute requiredPermission="read:budget">
                         <BudgetExecution />

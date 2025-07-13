@@ -33,7 +33,9 @@ import {
   LinearProgress,
   Accordion,
   AccordionSummary,
-  AccordionDetails
+  AccordionDetails,
+  Pagination,
+  Snackbar
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -44,7 +46,8 @@ import {
   TrendingUp as TrendingUpIcon,
   Assignment as AssignmentIcon,
   Timeline as TimelineIcon,
-  ExpandMore as ExpandMoreIcon
+  ExpandMore as ExpandMoreIcon,
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import httpClient from '../../utils/api';
@@ -61,6 +64,13 @@ const IndicatorManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  
+  // Snackbar state
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
   
   // Dialog states
   const [openDialog, setOpenDialog] = useState(false);
@@ -108,6 +118,19 @@ const IndicatorManagement = () => {
     loadLevelOptions();
   }, [filters]);
 
+  // Snackbar functions
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
   const loadIndicators = async () => {
     try {
       setLoading(true);
@@ -137,36 +160,43 @@ const IndicatorManagement = () => {
       }
 
       const response = await httpClient.get(`/indicators?${params.toString()}`);
-      setIndicators(response.indicators || []);
       
-      // Calcular estadísticas
-      const totalIndicators = (response.indicators || []).length;
-      const typeStats = (response.indicators || []).reduce((acc, indicator) => {
-        acc[indicator.type] = (acc[indicator.type] || 0) + 1;
-        return acc;
-      }, { PRODUCT: 0, RESULT: 0 });
-      
-      const levelStats = (response.indicators || []).reduce((acc, indicator) => {
-        let level = 'Sin asignar';
-        if (indicator.strategicAxis) level = 'Eje Estratégico';
-        else if (indicator.objective) level = 'Objetivo';
-        else if (indicator.product) level = 'Producto';
-        else if (indicator.activity) level = 'Actividad';
+      // Usar la nueva estructura de respuesta de la API
+      if (response.success) {
+        const indicatorsData = response.data.indicators || [];
+        setIndicators(indicatorsData);
         
-        acc[level] = (acc[level] || 0) + 1;
-        return acc;
-      }, {});
-      
-      const avgProgress = totalIndicators > 0 
-        ? (response.indicators || []).reduce((sum, ind) => sum + (ind.currentProgress?.progressPercent || 0), 0) / totalIndicators
-        : 0;
+        // Calcular estadísticas
+        const totalIndicators = indicatorsData.length;
+        const typeStats = indicatorsData.reduce((acc, indicator) => {
+          acc[indicator.type] = (acc[indicator.type] || 0) + 1;
+          return acc;
+        }, { PRODUCT: 0, RESULT: 0 });
+        
+        const levelStats = indicatorsData.reduce((acc, indicator) => {
+          let level = 'Sin asignar';
+          if (indicator.strategicAxis) level = 'Eje Estratégico';
+          else if (indicator.objective) level = 'Objetivo';
+          else if (indicator.product) level = 'Producto';
+          else if (indicator.activity) level = 'Actividad';
+          
+          acc[level] = (acc[level] || 0) + 1;
+          return acc;
+        }, {});
+        
+        const avgProgress = totalIndicators > 0 
+          ? indicatorsData.reduce((sum, ind) => sum + (ind.currentProgress?.progressPercent || 0), 0) / totalIndicators
+          : 0;
 
-      setStats({
-        total: totalIndicators,
-        byType: typeStats,
-        byLevel: levelStats,
-        avgProgress: Math.round(avgProgress * 100) / 100
-      });
+        setStats({
+          total: totalIndicators,
+          byType: typeStats,
+          byLevel: levelStats,
+          avgProgress: Math.round(avgProgress * 100) / 100
+        });
+      } else {
+        setError(response.message || 'Error al cargar indicadores');
+      }
 
     } catch (error) {
       console.error('Error al cargar indicadores:', error);
@@ -179,7 +209,12 @@ const IndicatorManagement = () => {
   const loadLevelOptions = async () => {
     try {
       const response = await httpClient.get(`/indicators/levels/options?year=${filters.year}`);
-      setLevelOptions(response || { strategicAxes: [], objectives: [], products: [], activities: [] });
+      
+      if (response.success) {
+        setLevelOptions(response.data || { strategicAxes: [], objectives: [], products: [], activities: [] });
+      } else {
+        console.error('Error al cargar opciones de niveles:', response.message);
+      }
     } catch (error) {
       console.error('Error al cargar opciones de niveles:', error);
     }
@@ -288,12 +323,23 @@ const IndicatorManagement = () => {
         }
       }
 
+      let response;
       if (dialogMode === 'create') {
-        await httpClient.post('/indicators', submitData);
-        setSuccess('Indicador creado exitosamente');
+        response = await httpClient.post('/indicators', submitData);
+        if (response.success) {
+          showSnackbar('Indicador creado exitosamente', 'success');
+        } else {
+          showSnackbar(response.message || 'Error al crear el indicador', 'error');
+          return;
+        }
       } else if (dialogMode === 'edit') {
-        await httpClient.put(`/indicators/${selectedIndicator.id}`, submitData);
-        setSuccess('Indicador actualizado exitosamente');
+        response = await httpClient.put(`/indicators/${selectedIndicator.id}`, submitData);
+        if (response.success) {
+          showSnackbar('Indicador actualizado exitosamente', 'success');
+        } else {
+          showSnackbar(response.message || 'Error al actualizar el indicador', 'error');
+          return;
+        }
       }
 
       handleCloseDialog();
@@ -301,7 +347,10 @@ const IndicatorManagement = () => {
       
     } catch (error) {
       console.error('Error al guardar indicador:', error);
-      setError(error.response?.data?.message || 'Error al guardar el indicador');
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.errors?.[0]?.msg || 
+                          'Error al guardar el indicador';
+      showSnackbar(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -314,12 +363,18 @@ const IndicatorManagement = () => {
 
     try {
       setLoading(true);
-      await httpClient.delete(`/indicators/${indicator.id}`);
-      setSuccess('Indicador eliminado exitosamente');
-      loadIndicators();
+      const response = await httpClient.delete(`/indicators/${indicator.id}`);
+      
+      if (response.success) {
+        showSnackbar('Indicador eliminado exitosamente', 'success');
+        loadIndicators();
+      } else {
+        showSnackbar(response.message || 'Error al eliminar el indicador', 'error');
+      }
     } catch (error) {
       console.error('Error al eliminar indicador:', error);
-      setError(error.response?.data?.message || 'Error al eliminar el indicador');
+      const errorMessage = error.response?.data?.message || 'Error al eliminar el indicador';
+      showSnackbar(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
@@ -860,6 +915,22 @@ const IndicatorManagement = () => {
           )}
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleCloseSnackbar} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

@@ -88,7 +88,11 @@ router.get('/',
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          message: 'Errores de validación',
+          errors: errors.array()
+        });
       }
 
       const { 
@@ -205,21 +209,26 @@ router.get('/',
       const totalPages = Math.ceil(totalCount / take);
 
       res.json({
-        indicators: indicatorsWithProgress,
-        pagination: {
-          currentPage: parseInt(page),
-          totalPages,
-          totalCount,
-          hasNext: parseInt(page) < totalPages,
-          hasPrev: parseInt(page) > 1
-        }
+        success: true,
+        data: {
+          indicators: indicatorsWithProgress,
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages,
+            totalCount,
+            hasNext: parseInt(page) < totalPages,
+            hasPrev: parseInt(page) > 1
+          }
+        },
+        message: `${indicatorsWithProgress.length} indicadores encontrados`
       });
 
     } catch (error) {
       console.error('Error al obtener indicadores:', error);
       res.status(500).json({ 
-        message: 'Error interno del servidor al obtener indicadores',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        data: null,
+        message: 'Error interno del servidor al obtener indicadores'
       });
     }
   }
@@ -234,7 +243,11 @@ router.get('/:id',
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          message: 'Errores de validación',
+          errors: errors.array()
+        });
       }
 
       const { id } = req.params;
@@ -294,15 +307,20 @@ router.get('/:id',
         : 0;
 
       res.json({
-        ...indicator,
-        progressStats
+        success: true,
+        data: {
+          ...indicator,
+          progressStats
+        },
+        message: 'Indicador encontrado'
       });
 
     } catch (error) {
       console.error('Error al obtener indicador:', error);
       res.status(500).json({ 
-        message: 'Error interno del servidor al obtener el indicador',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        data: null,
+        message: 'Error interno del servidor al obtener el indicador'
       });
     }
   }
@@ -317,7 +335,11 @@ router.post('/',
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          message: 'Errores de validación',
+          errors: errors.array()
+        });
       }
 
       const {
@@ -401,8 +423,9 @@ router.post('/',
       });
 
       res.status(201).json({
-        message: 'Indicador creado exitosamente',
-        indicator
+        success: true,
+        data: indicator,
+        message: `Indicador "${indicator.name}" creado exitosamente`
       });
 
     } catch (error) {
@@ -432,7 +455,11 @@ router.put('/:id',
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          message: 'Errores de validación',
+          errors: errors.array()
+        });
       }
 
       const { id } = req.params;
@@ -529,15 +556,17 @@ router.put('/:id',
       });
 
       res.json({
-        message: 'Indicador actualizado exitosamente',
-        indicator: updatedIndicator
+        success: true,
+        data: updatedIndicator,
+        message: `Indicador "${updatedIndicator.name}" actualizado exitosamente`
       });
 
     } catch (error) {
       console.error('Error al actualizar indicador:', error);
       res.status(500).json({ 
-        message: 'Error interno del servidor al actualizar el indicador',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        data: null,
+        message: 'Error interno del servidor al actualizar el indicador'
       });
     }
   }
@@ -552,7 +581,11 @@ router.delete('/:id',
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({
+          success: false,
+          message: 'Errores de validación',
+          errors: errors.array()
+        });
       }
 
       const { id } = req.params;
@@ -568,12 +601,18 @@ router.delete('/:id',
       });
 
       if (!indicator) {
-        return res.status(404).json({ message: 'Indicador no encontrado' });
+        return res.status(404).json({ 
+          success: false,
+          data: null,
+          message: 'Indicador no encontrado' 
+        });
       }
 
       // Verificar si tiene reportes de progreso
       if (indicator._count.progressReports > 0) {
         return res.status(400).json({
+          success: false,
+          data: null,
           message: `No se puede eliminar el indicador porque tiene ${indicator._count.progressReports} reporte(s) de progreso asociado(s)`
         });
       }
@@ -584,14 +623,17 @@ router.delete('/:id',
       });
 
       res.json({
+        success: true,
+        data: { id },
         message: 'Indicador eliminado exitosamente'
       });
 
     } catch (error) {
       console.error('Error al eliminar indicador:', error);
       res.status(500).json({ 
-        message: 'Error interno del servidor al eliminar el indicador',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        data: null,
+        message: 'Error interno del servidor al eliminar el indicador'
       });
     }
   }
@@ -701,17 +743,22 @@ router.get('/levels/options',
       ]);
 
       res.json({
-        strategicAxes,
-        objectives,
-        products,
-        activities
+        success: true,
+        data: {
+          strategicAxes,
+          objectives,
+          products,
+          activities
+        },
+        message: 'Opciones de niveles obtenidas exitosamente'
       });
 
     } catch (error) {
       console.error('Error al obtener opciones de niveles:', error);
       res.status(500).json({ 
-        message: 'Error interno del servidor al obtener opciones de niveles',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        success: false,
+        data: null,
+        message: 'Error interno del servidor al obtener opciones de niveles'
       });
     }
   }

@@ -34,6 +34,10 @@ model User {
   progressReports       ProgressReport[]
   approvedReports       ProgressReport[]     @relation("ApprovedBy")
   
+  // Budget execution relations
+  budgetResponsible     BudgetExecution[]    @relation("BudgetResponsible")
+  budgetModified        BudgetExecution[]    @relation("BudgetModifiedBy")
+  
   @@map("users")
 }
 
@@ -99,6 +103,7 @@ model Department {
   strategicAxes         StrategicAxis[]
   activityAssignments   ActivityAssignment[]
   indicatorAssignments  IndicatorAssignment[]
+  budgetExecutions      BudgetExecution[]
 
   @@map("departments")
 }
@@ -284,44 +289,6 @@ model ProgressReportAttachment {
 
 // ========== BUDGET EXECUTION ==========
 
-model BudgetItem {
-  id          String   @id @default(uuid())
-  code        String   @unique
-  name        String
-  description String?
-  category    String?  // Categoría presupuestaria
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  budgetExecutions BudgetExecution[]
-
-  @@map("budget_items")
-}
-
-model BudgetExecution {
-  id                 String   @id @default(uuid())
-  year               Int
-  assignedAmount     Float    @default(0)
-  committedAmount    Float    @default(0)
-  accruedAmount      Float    @default(0)
-  paidAmount         Float    @default(0)
-  executionPercent   Float    @default(0) // Calculated field
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  // Relations
-  activityId String
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  
-  budgetItemId String
-  budgetItem   BudgetItem @relation(fields: [budgetItemId], references: [id])
-
-  @@unique([activityId, budgetItemId, year])
-  @@map("budget_executions")
-}
-
 // ========== ACTIVITY ASSIGNMENTS ==========
 
 model ActivityAssignment {
@@ -362,6 +329,60 @@ model IndicatorAssignment {
 
   @@unique([userId, indicatorId])
   @@map("indicator_assignments")
+}
+
+// ========== BUDGET EXECUTION MODELS ==========
+
+model BudgetExecution {
+  id          String   @id @default(uuid())
+  
+  // Información básica de la partida presupuestaria
+  budgetCode     String   // Código de la partida presupuestaria (ej: 2.1.1.01.001)
+  budgetName     String   // Nombre de la partida presupuestaria
+  description    String?  // Descripción adicional
+  
+  // Montos presupuestarios
+  assignedAmount    Decimal  @default(0) // Monto Asignado inicial
+  committedAmount   Decimal  @default(0) // Monto Comprometido (reservado)
+  accruedAmount     Decimal  @default(0) // Monto Devengado (obligación contraída)
+  paidAmount        Decimal  @default(0) // Monto Pagado (efectivamente pagado)
+  
+  // Cálculos automáticos (se calculan en la aplicación)
+  commitmentPercent Decimal  @default(0) // % Compromiso = (Comprometido / Asignado) * 100
+  accruedPercent    Decimal  @default(0) // % Devengado = (Devengado / Asignado) * 100
+  executionPercent  Decimal  @default(0) // % Ejecución = (Pagado / Asignado) * 100
+  
+  // Información de programación
+  fiscalYear      Int      // Año fiscal de la ejecución
+  quarter         Int?     // Trimestre (1, 2, 3, 4) - opcional
+  month           Int?     // Mes (1-12) - opcional
+  
+  // Metadatos
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  lastModifiedBy String?  // ID del usuario que hizo la última modificación
+
+  // Relations
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  
+  // Usuario responsable de la ejecución presupuestaria
+  responsibleId String?
+  responsible   User? @relation("BudgetResponsible", fields: [responsibleId], references: [id])
+  
+  // Usuario que registró/modificó por última vez
+  modifiedById String?
+  modifiedBy   User? @relation("BudgetModifiedBy", fields: [modifiedById], references: [id])
+
+  @@unique([activityId, budgetCode, fiscalYear]) // Una actividad no puede tener la misma partida duplicada en el mismo año
+  @@index([fiscalYear])
+  @@index([activityId])
+  @@index([budgetCode])
+  @@map("budget_executions")
 }
 
 // ========== ENUMS replaced with strings for SQLite compatibility ==========

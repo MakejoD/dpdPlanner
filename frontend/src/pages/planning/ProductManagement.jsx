@@ -30,7 +30,8 @@ import {
   Grid,
   FormControlLabel,
   Switch,
-  Fab
+  Fab,
+  Snackbar
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -39,6 +40,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   Inventory as ProductIcon
 } from '@mui/icons-material';
+import { httpClient } from '../../utils/api';
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -51,6 +53,7 @@ const ProductManagement = () => {
   const [selectedObjectiveId, setSelectedObjectiveId] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const [groupByObjective, setGroupByObjective] = useState(true);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -68,25 +71,23 @@ const ProductManagement = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
 
       // Cargar objetivos
-      const objectivesResponse = await fetch('http://localhost:3001/api/objectives', { headers });
-      const objectivesData = await objectivesResponse.json();
-      setObjectives(objectivesData);
+      const objectivesResponse = await httpClient.get('/objectives');
+      if (objectivesResponse.success) {
+        setObjectives(objectivesResponse.data);
+      }
 
       // Cargar productos
-      const productsResponse = await fetch('http://localhost:3001/api/products', { headers });
-      const productsData = await productsResponse.json();
-      setProducts(productsData);
+      const productsResponse = await httpClient.get('/products');
+      if (productsResponse.success) {
+        setProducts(productsResponse.data);
+      }
 
       setError('');
     } catch (err) {
       setError('Error al cargar los datos: ' + err.message);
+      setSnackbar({ open: true, message: 'Error al cargar los datos', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -132,32 +133,28 @@ const ProductManagement = () => {
 
   const handleSubmit = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const headers = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
-
-      const method = editingProduct ? 'PUT' : 'POST';
-      const url = editingProduct 
-        ? `http://localhost:3001/api/products/${editingProduct.id}`
-        : 'http://localhost:3001/api/products';
-
-      const response = await fetch(url, {
-        method,
-        headers,
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al guardar el producto');
+      let response;
+      if (editingProduct) {
+        response = await httpClient.put(`/products/${editingProduct.id}`, formData);
+      } else {
+        response = await httpClient.post('/products', formData);
       }
 
-      setSuccess(editingProduct ? 'Producto actualizado exitosamente' : 'Producto creado exitosamente');
-      handleCloseDialog();
-      loadData();
+      if (response.success) {
+        const action = editingProduct ? 'actualizado' : 'creado';
+        setSnackbar({ 
+          open: true, 
+          message: `Producto ${action} exitosamente`, 
+          severity: 'success' 
+        });
+        handleCloseDialog();
+        loadData();
+      } else {
+        throw new Error(response.message || 'Error al guardar el producto');
+      }
     } catch (err) {
       setError('Error al guardar: ' + err.message);
+      setSnackbar({ open: true, message: 'Error al guardar el producto', severity: 'error' });
     }
   };
 
@@ -167,22 +164,21 @@ const ProductManagement = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:3001/api/products/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al eliminar el producto');
+      const response = await httpClient.delete(`/products/${id}`);
+      
+      if (response.success) {
+        setSnackbar({ 
+          open: true, 
+          message: 'Producto eliminado exitosamente', 
+          severity: 'success' 
+        });
+        loadData();
+      } else {
+        throw new Error(response.message || 'Error al eliminar el producto');
       }
-
-      setSuccess('Producto eliminado exitosamente');
-      loadData();
     } catch (err) {
       setError('Error al eliminar: ' + err.message);
+      setSnackbar({ open: true, message: 'Error al eliminar el producto', severity: 'error' });
     }
   };
 
@@ -662,6 +658,21 @@ const ProductManagement = () => {
       >
         <AddIcon />
       </Fab>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar({ ...snackbar, open: false })} 
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

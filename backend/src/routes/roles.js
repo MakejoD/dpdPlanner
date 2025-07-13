@@ -10,7 +10,7 @@ const prisma = new PrismaClient();
 
 /**
  * @route   GET /api/roles
- * @desc    Obtener lista de roles
+ * @desc    Obtener lista de roles con permisos
  * @access  Private (read:role)
  */
 router.get('/', 
@@ -18,9 +18,15 @@ router.get('/',
   authorize('read', 'role'), 
   async (req, res) => {
     try {
-      const { includePermissions = false } = req.query;
+      const { includePermissions = false, isActive } = req.query;
+
+      const where = {};
+      if (isActive !== undefined) {
+        where.isActive = isActive === 'true';
+      }
 
       const roles = await prisma.role.findMany({
+        where,
         include: {
           ...(includePermissions === 'true' && {
             rolePermissions: {
@@ -57,13 +63,17 @@ router.get('/',
         })
       }));
 
-      res.json(formattedRoles);
+      res.json({
+        success: true,
+        data: formattedRoles
+      });
 
     } catch (error) {
       logger.error('Error al obtener roles:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
-        message: 'Error al obtener la lista de roles'
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }
@@ -71,7 +81,7 @@ router.get('/',
 
 /**
  * @route   GET /api/roles/:id
- * @desc    Obtener rol por ID
+ * @desc    Obtener rol por ID con permisos
  * @access  Private (read:role)
  */
 router.get('/:id', 
@@ -92,10 +102,15 @@ router.get('/:id',
           users: {
             select: {
               id: true,
-              email: true,
               firstName: true,
               lastName: true,
+              email: true,
               isActive: true
+            }
+          },
+          _count: {
+            select: {
+              users: true
             }
           }
         }
@@ -103,8 +118,8 @@ router.get('/:id',
 
       if (!role) {
         return res.status(404).json({
-          error: 'Rol no encontrado',
-          message: 'El rol solicitado no existe'
+          success: false,
+          message: 'Rol no encontrado'
         });
       }
 
@@ -115,6 +130,7 @@ router.get('/:id',
         isActive: role.isActive,
         createdAt: role.createdAt,
         updatedAt: role.updatedAt,
+        userCount: role._count.users,
         permissions: role.rolePermissions.map(rp => ({
           id: rp.permission.id,
           action: rp.permission.action,
@@ -123,13 +139,17 @@ router.get('/:id',
         users: role.users
       };
 
-      res.json(formattedRole);
+      res.json({
+        success: true,
+        data: formattedRole
+      });
 
     } catch (error) {
       logger.error('Error al obtener rol:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
-        message: 'Error al obtener el rol'
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }
@@ -143,11 +163,16 @@ router.get('/:id',
 router.post('/', 
   authenticateToken, 
   authorize('create', 'role'),
-  validateRole,
-  handleValidationErrors,
   async (req, res) => {
     try {
       const { name, description, permissionIds = [] } = req.body;
+
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          message: 'El nombre del rol es requerido'
+        });
+      }
 
       // Verificar si el nombre ya existe
       const existingRole = await prisma.role.findUnique({
@@ -156,48 +181,59 @@ router.post('/',
 
       if (existingRole) {
         return res.status(400).json({
-          error: 'Nombre de rol ya existe',
+          success: false,
           message: 'Ya existe un rol con este nombre'
         });
       }
 
-      // Verificar que los permisos existen
+      // Verificar que todos los permisos existan
       if (permissionIds.length > 0) {
-        const existingPermissions = await prisma.permission.findMany({
+        const permissions = await prisma.permission.findMany({
           where: {
             id: { in: permissionIds }
           }
         });
 
-        if (existingPermissions.length !== permissionIds.length) {
+        if (permissions.length !== permissionIds.length) {
           return res.status(400).json({
-            error: 'Permisos no válidos',
+            success: false,
             message: 'Algunos permisos especificados no existen'
           });
         }
       }
 
-      // Crear rol
-      const newRole = await prisma.role.create({
-        data: {
-          name,
-          description,
-          rolePermissions: {
-            create: permissionIds.map(permissionId => ({
+      // Crear rol en una transacción
+      const newRole = await prisma.$transaction(async (tx) => {
+        // Crear el rol
+        const role = await tx.role.create({
+          data: {
+            name,
+            description
+          }
+        });
+
+        // Asignar permisos si se proporcionaron
+        if (permissionIds.length > 0) {
+          await tx.rolePermission.createMany({
+            data: permissionIds.map(permissionId => ({
+              roleId: role.id,
               permissionId
             }))
-          }
-        },
-        include: {
-          rolePermissions: {
-            include: {
-              permission: true
+          });
+        }
+
+        // Retornar el rol con permisos
+        return await tx.role.findUnique({
+          where: { id: role.id },
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true
+              }
             }
           }
-        }
+        });
       });
-
-      logger.info(`Rol creado: ${newRole.name} por ${req.user.email}`);
 
       const formattedRole = {
         id: newRole.id,
@@ -205,6 +241,7 @@ router.post('/',
         description: newRole.description,
         isActive: newRole.isActive,
         createdAt: newRole.createdAt,
+        updatedAt: newRole.updatedAt,
         permissions: newRole.rolePermissions.map(rp => ({
           id: rp.permission.id,
           action: rp.permission.action,
@@ -212,16 +249,20 @@ router.post('/',
         }))
       };
 
+      logger.info(`Rol creado: ${name} por ${req.user.email}`);
+
       res.status(201).json({
+        success: true,
         message: 'Rol creado exitosamente',
-        role: formattedRole
+        data: formattedRole
       });
 
     } catch (error) {
       logger.error('Error al crear rol:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
-        message: 'Error al crear el rol'
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }
@@ -240,102 +281,119 @@ router.put('/:id',
       const { id } = req.params;
       const { name, description, isActive, permissionIds } = req.body;
 
-      // Verificar que el rol existe
+      // Verificar que el rol exista
       const existingRole = await prisma.role.findUnique({
         where: { id }
       });
 
       if (!existingRole) {
         return res.status(404).json({
-          error: 'Rol no encontrado',
-          message: 'El rol especificado no existe'
+          success: false,
+          message: 'Rol no encontrado'
         });
       }
 
-      // Preparar datos para actualizar
-      const updateData = {};
-      
+      // Verificar si el nombre ya existe (si se está cambiando)
       if (name && name !== existingRole.name) {
-        // Verificar que el nuevo nombre no esté en uso
         const nameExists = await prisma.role.findUnique({
           where: { name }
         });
-        
+
         if (nameExists) {
           return res.status(400).json({
-            error: 'Nombre de rol ya existe',
+            success: false,
             message: 'Ya existe un rol con este nombre'
           });
         }
-        
-        updateData.name = name;
       }
 
-      if (description !== undefined) updateData.description = description;
-      if (isActive !== undefined) updateData.isActive = isActive;
-
-      // Actualizar rol
-      const updatedRole = await prisma.role.update({
-        where: { id },
-        data: updateData
-      });
-
-      // Actualizar permisos si se proporcionan
-      if (permissionIds !== undefined) {
-        // Eliminar permisos actuales
-        await prisma.rolePermission.deleteMany({
-          where: { roleId: id }
+      // Verificar que todos los permisos existan (si se proporcionan)
+      if (permissionIds && permissionIds.length > 0) {
+        const permissions = await prisma.permission.findMany({
+          where: {
+            id: { in: permissionIds }
+          }
         });
 
-        // Agregar nuevos permisos
-        if (permissionIds.length > 0) {
-          await prisma.rolePermission.createMany({
-            data: permissionIds.map(permissionId => ({
-              roleId: id,
-              permissionId
-            }))
+        if (permissions.length !== permissionIds.length) {
+          return res.status(400).json({
+            success: false,
+            message: 'Algunos permisos especificados no existen'
           });
         }
       }
 
-      // Obtener rol actualizado con permisos
-      const roleWithPermissions = await prisma.role.findUnique({
-        where: { id },
-        include: {
-          rolePermissions: {
-            include: {
-              permission: true
-            }
+      // Actualizar rol en una transacción
+      const updatedRole = await prisma.$transaction(async (tx) => {
+        // Actualizar datos básicos del rol
+        const role = await tx.role.update({
+          where: { id },
+          data: {
+            ...(name && { name }),
+            ...(description !== undefined && { description }),
+            ...(isActive !== undefined && { isActive })
+          }
+        });
+
+        // Actualizar permisos si se proporcionaron
+        if (permissionIds !== undefined) {
+          // Eliminar permisos actuales
+          await tx.rolePermission.deleteMany({
+            where: { roleId: id }
+          });
+
+          // Agregar nuevos permisos
+          if (permissionIds.length > 0) {
+            await tx.rolePermission.createMany({
+              data: permissionIds.map(permissionId => ({
+                roleId: id,
+                permissionId
+              }))
+            });
           }
         }
+
+        // Retornar el rol actualizado con permisos
+        return await tx.role.findUnique({
+          where: { id },
+          include: {
+            rolePermissions: {
+              include: {
+                permission: true
+              }
+            }
+          }
+        });
       });
 
-      logger.info(`Rol actualizado: ${updatedRole.name} por ${req.user.email}`);
-
       const formattedRole = {
-        id: roleWithPermissions.id,
-        name: roleWithPermissions.name,
-        description: roleWithPermissions.description,
-        isActive: roleWithPermissions.isActive,
-        createdAt: roleWithPermissions.createdAt,
-        updatedAt: roleWithPermissions.updatedAt,
-        permissions: roleWithPermissions.rolePermissions.map(rp => ({
+        id: updatedRole.id,
+        name: updatedRole.name,
+        description: updatedRole.description,
+        isActive: updatedRole.isActive,
+        createdAt: updatedRole.createdAt,
+        updatedAt: updatedRole.updatedAt,
+        permissions: updatedRole.rolePermissions.map(rp => ({
           id: rp.permission.id,
           action: rp.permission.action,
           resource: rp.permission.resource
         }))
       };
 
+      logger.info(`Rol actualizado: ${updatedRole.name} por ${req.user.email}`);
+
       res.json({
+        success: true,
         message: 'Rol actualizado exitosamente',
-        role: formattedRole
+        data: formattedRole
       });
 
     } catch (error) {
       logger.error('Error al actualizar rol:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
-        message: 'Error al actualizar el rol'
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }
@@ -343,18 +401,18 @@ router.put('/:id',
 
 /**
  * @route   DELETE /api/roles/:id
- * @desc    Eliminar rol
+ * @desc    Eliminar rol (soft delete)
  * @access  Private (delete:role)
  */
 router.delete('/:id', 
   authenticateToken, 
-  authorize('delete', 'role'),
+  authorize('delete', 'role'), 
   async (req, res) => {
     try {
       const { id } = req.params;
 
-      // Verificar que el rol existe
-      const role = await prisma.role.findUnique({
+      // Verificar que el rol exista
+      const existingRole = await prisma.role.findUnique({
         where: { id },
         include: {
           _count: {
@@ -365,168 +423,40 @@ router.delete('/:id',
         }
       });
 
-      if (!role) {
+      if (!existingRole) {
         return res.status(404).json({
-          error: 'Rol no encontrado',
-          message: 'El rol especificado no existe'
+          success: false,
+          message: 'Rol no encontrado'
         });
       }
 
-      // No permitir eliminar rol con usuarios asignados
-      if (role._count.users > 0) {
+      // Verificar si hay usuarios asignados
+      if (existingRole._count.users > 0) {
         return res.status(400).json({
-          error: 'No se puede eliminar',
-          message: 'Este rol tiene usuarios asignados. Primero reasigne los usuarios a otro rol.'
+          success: false,
+          message: `No se puede eliminar el rol porque tiene ${existingRole._count.users} usuario(s) asignado(s)`
         });
       }
 
-      // Eliminar permisos del rol
-      await prisma.rolePermission.deleteMany({
-        where: { roleId: id }
+      // Soft delete - marcar como inactivo
+      await prisma.role.update({
+        where: { id },
+        data: { isActive: false }
       });
 
-      // Eliminar rol
-      await prisma.role.delete({
-        where: { id }
-      });
-
-      logger.info(`Rol eliminado: ${role.name} por ${req.user.email}`);
+      logger.info(`Rol desactivado: ${existingRole.name} por ${req.user.email}`);
 
       res.json({
-        message: 'Rol eliminado exitosamente'
+        success: true,
+        message: 'Rol desactivado exitosamente'
       });
 
     } catch (error) {
       logger.error('Error al eliminar rol:', error);
       res.status(500).json({
-        error: 'Error interno del servidor',
-        message: 'Error al eliminar el rol'
-      });
-    }
-  }
-);
-
-/**
- * @route   POST /api/roles/:id/permissions
- * @desc    Agregar permisos a un rol
- * @access  Private (update:role)
- */
-router.post('/:id/permissions', 
-  authenticateToken, 
-  authorize('update', 'role'),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { permissionIds } = req.body;
-
-      if (!permissionIds || !Array.isArray(permissionIds)) {
-        return res.status(400).json({
-          error: 'Datos inválidos',
-          message: 'Debe proporcionar un array de IDs de permisos'
-        });
-      }
-
-      // Verificar que el rol existe
-      const role = await prisma.role.findUnique({
-        where: { id }
-      });
-
-      if (!role) {
-        return res.status(404).json({
-          error: 'Rol no encontrado',
-          message: 'El rol especificado no existe'
-        });
-      }
-
-      // Verificar que los permisos existen
-      const existingPermissions = await prisma.permission.findMany({
-        where: {
-          id: { in: permissionIds }
-        }
-      });
-
-      if (existingPermissions.length !== permissionIds.length) {
-        return res.status(400).json({
-          error: 'Permisos no válidos',
-          message: 'Algunos permisos especificados no existen'
-        });
-      }
-
-      // Agregar permisos (ignorar duplicados)
-      await prisma.rolePermission.createMany({
-        data: permissionIds.map(permissionId => ({
-          roleId: id,
-          permissionId
-        })),
-        skipDuplicates: true
-      });
-
-      logger.info(`Permisos agregados al rol: ${role.name} por ${req.user.email}`);
-
-      res.json({
-        message: 'Permisos agregados exitosamente'
-      });
-
-    } catch (error) {
-      logger.error('Error al agregar permisos:', error);
-      res.status(500).json({
-        error: 'Error interno del servidor',
-        message: 'Error al agregar permisos al rol'
-      });
-    }
-  }
-);
-
-/**
- * @route   DELETE /api/roles/:id/permissions/:permissionId
- * @desc    Remover permiso de un rol
- * @access  Private (update:role)
- */
-router.delete('/:id/permissions/:permissionId', 
-  authenticateToken, 
-  authorize('update', 'role'),
-  async (req, res) => {
-    try {
-      const { id, permissionId } = req.params;
-
-      // Verificar que la relación existe
-      const rolePermission = await prisma.rolePermission.findUnique({
-        where: {
-          roleId_permissionId: {
-            roleId: id,
-            permissionId: permissionId
-          }
-        }
-      });
-
-      if (!rolePermission) {
-        return res.status(404).json({
-          error: 'Relación no encontrada',
-          message: 'El rol no tiene este permiso asignado'
-        });
-      }
-
-      // Eliminar permiso del rol
-      await prisma.rolePermission.delete({
-        where: {
-          roleId_permissionId: {
-            roleId: id,
-            permissionId: permissionId
-          }
-        }
-      });
-
-      logger.info(`Permiso removido del rol por ${req.user.email}`);
-
-      res.json({
-        message: 'Permiso removido exitosamente'
-      });
-
-    } catch (error) {
-      logger.error('Error al remover permiso:', error);
-      res.status(500).json({
-        error: 'Error interno del servidor',
-        message: 'Error al remover permiso del rol'
+        success: false,
+        message: 'Error interno del servidor',
+        error: error.message
       });
     }
   }

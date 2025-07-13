@@ -46,7 +46,11 @@ router.get('/',
         }
       });
 
-      res.json(departments);
+      res.json({
+        success: true,
+        data: departments,
+        message: `${departments.length} departamentos encontrados`
+      });
 
     } catch (error) {
       logger.error('Error al obtener departamentos:', error);

@@ -91,9 +91,14 @@ const RoleManagement = () => {
       console.log('Respuesta de roles:', rolesResponse);
       console.log('Respuesta de permisos:', permissionsResponse);
       
-      setRoles(rolesResponse || []);
-      setPermissions(permissionsResponse || []);
+      // Usar la nueva estructura de respuesta de las APIs
+      setRoles(rolesResponse?.data || []);
+      setPermissions(permissionsResponse?.data || []);
       setError('');
+      
+      if (!rolesResponse?.success) {
+        showAlert(rolesResponse?.message || 'Error al cargar roles', 'error');
+      }
     } catch (error) {
       console.error('Error cargando datos:', error);
       setError('Error al cargar datos del sistema');
@@ -177,12 +182,13 @@ const RoleManagement = () => {
         permissions: formData.permissions
       };
 
+      let response;
       if (editingRole) {
-        await httpClient.put(`/roles/${editingRole.id}`, dataToSend);
-        showAlert('Rol actualizado exitosamente', 'success');
+        response = await httpClient.put(`/roles/${editingRole.id}`, dataToSend);
+        showAlert(response.message || 'Rol actualizado exitosamente', 'success');
       } else {
-        await httpClient.post('/roles', dataToSend);
-        showAlert('Rol creado exitosamente', 'success');
+        response = await httpClient.post('/roles', dataToSend);
+        showAlert(response.message || 'Rol creado exitosamente', 'success');
       }
 
       handleCloseDialog();
@@ -201,8 +207,8 @@ const RoleManagement = () => {
     }
 
     try {
-      await httpClient.delete(`/roles/${role.id}`);
-      showAlert('Rol eliminado exitosamente', 'success');
+      const response = await httpClient.delete(`/roles/${role.id}`);
+      showAlert(response.message || 'Rol eliminado exitosamente', 'success');
       loadData();
     } catch (error) {
       console.error('Error eliminando rol:', error);

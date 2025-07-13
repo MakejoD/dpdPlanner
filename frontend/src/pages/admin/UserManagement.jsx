@@ -87,17 +87,21 @@ const UserManagement = () => {
       console.log('Respuesta de roles:', rolesResponse);
       console.log('Respuesta de departamentos:', departmentsResponse);
       
-      // La respuesta de usuarios tiene estructura {users: [...], pagination: {...}}
-      setUsers(usersResponse?.users || []);
-      setRoles(rolesResponse || []);
-      setDepartments(departmentsResponse || []);
+      // Usar la nueva estructura de respuesta de las APIs
+      setUsers(usersResponse?.data || []);
+      setRoles(rolesResponse?.data || []);
+      setDepartments(departmentsResponse?.data || []);
+      
+      if (!usersResponse?.success) {
+        showAlert(usersResponse?.message || 'Error al cargar usuarios', 'error');
+      }
     } catch (error) {
       console.error('Error cargando datos:', error);
       // Asegurar que siempre tengamos arrays vacíos en caso de error
       setUsers([]);
       setRoles([]);
       setDepartments([]);
-      showAlert('Error al cargar datos', 'error');
+      showAlert(error.response?.data?.message || 'Error al cargar datos', 'error');
     } finally {
       setLoading(false);
     }
@@ -204,12 +208,13 @@ const UserManagement = () => {
         dataToSend.password = formData.password;
       }
 
+      let response;
       if (editingUser) {
-        await httpClient.put(`/users/${editingUser.id}`, dataToSend);
-        showAlert('Usuario actualizado exitosamente', 'success');
+        response = await httpClient.put(`/users/${editingUser.id}`, dataToSend);
+        showAlert(response.message || 'Usuario actualizado exitosamente', 'success');
       } else {
-        await httpClient.post('/users', dataToSend);
-        showAlert('Usuario creado exitosamente', 'success');
+        response = await httpClient.post('/users', dataToSend);
+        showAlert(response.message || 'Usuario creado exitosamente', 'success');
       }
 
       handleCloseDialog();
@@ -228,8 +233,8 @@ const UserManagement = () => {
     }
 
     try {
-      await httpClient.delete(`/users/${user.id}`);
-      showAlert('Usuario eliminado exitosamente', 'success');
+      const response = await httpClient.delete(`/users/${user.id}`);
+      showAlert(response.message || 'Usuario eliminado exitosamente', 'success');
       loadData();
     } catch (error) {
       console.error('Error eliminando usuario:', error);

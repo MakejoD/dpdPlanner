@@ -40,10 +40,18 @@ router.get('/',
           return acc;
         }, {});
 
-        return res.json(groupedPermissions);
+        return res.json({
+          success: true,
+          data: groupedPermissions,
+          message: `Permisos agrupados por recurso`
+        });
       }
 
-      res.json(permissions);
+      res.json({
+        success: true,
+        data: permissions,
+        message: `${permissions.length} permisos encontrados`
+      });
 
     } catch (error) {
       logger.error('Error al obtener permisos:', error);

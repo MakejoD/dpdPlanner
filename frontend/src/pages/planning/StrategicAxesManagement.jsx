@@ -43,7 +43,7 @@ import {
   Assignment as AssignmentIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
+import { httpClient } from '../../utils/api';
 
 const StrategicAxesManagement = () => {
   const { user, token } = useAuth();
@@ -82,14 +82,6 @@ const StrategicAxesManagement = () => {
     byDepartment: {}
   });
 
-  const apiClient = axios.create({
-    baseURL: 'http://localhost:3001/api',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    }
-  });
-
   // Load data
   useEffect(() => {
     loadStrategicAxes();
@@ -106,13 +98,14 @@ const StrategicAxesManagement = () => {
       if (filters.departmentId) params.append('departmentId', filters.departmentId);
       if (filters.isActive !== null) params.append('isActive', filters.isActive);
       
-      const response = await apiClient.get(`/strategic-axes?${params}`);
-      setStrategicAxes(response.data);
+      const response = await httpClient.get(`/strategic-axes?${params}`);
+      const axesData = response.data || [];
+      setStrategicAxes(axesData);
       
       // Calculate statistics
-      const total = response.data.length;
-      const active = response.data.filter(axis => axis.isActive).length;
-      const byDepartment = response.data.reduce((acc, axis) => {
+      const total = axesData.length;
+      const active = axesData.filter(axis => axis.isActive).length;
+      const byDepartment = axesData.reduce((acc, axis) => {
         const deptName = axis.department?.name || 'Sin departamento';
         acc[deptName] = (acc[deptName] || 0) + 1;
         return acc;
@@ -129,8 +122,9 @@ const StrategicAxesManagement = () => {
 
   const loadDepartments = async () => {
     try {
-      const response = await apiClient.get('/departments');
-      setDepartments(response.data);
+      const response = await httpClient.get('/departments');
+      const departmentsData = response.data || [];
+      setDepartments(departmentsData);
     } catch (error) {
       console.error('Error loading departments:', error);
     }
@@ -195,19 +189,20 @@ const StrategicAxesManagement = () => {
         departmentId: formData.departmentId || null
       };
 
+      let response;
       if (dialogMode === 'create') {
-        await apiClient.post('/strategic-axes', submitData);
-        setSuccess('Eje estratégico creado exitosamente');
+        response = await httpClient.post('/strategic-axes', submitData);
+        setSuccess(response.message || 'Eje estratégico creado exitosamente');
       } else if (dialogMode === 'edit') {
-        await apiClient.put(`/strategic-axes/${selectedAxis.id}`, submitData);
-        setSuccess('Eje estratégico actualizado exitosamente');
+        response = await httpClient.put(`/strategic-axes/${selectedAxis.id}`, submitData);
+        setSuccess(response.message || 'Eje estratégico actualizado exitosamente');
       }
 
       handleCloseDialog();
       loadStrategicAxes();
     } catch (error) {
       console.error('Error saving strategic axis:', error);
-      setError(error.response?.data?.message || 'Error al guardar el eje estratégico');
+      setError(error.message || 'Error al guardar el eje estratégico');
     }
   };
 
@@ -217,12 +212,12 @@ const StrategicAxesManagement = () => {
     }
 
     try {
-      await apiClient.delete(`/strategic-axes/${axis.id}`);
-      setSuccess('Eje estratégico eliminado exitosamente');
+      const response = await httpClient.delete(`/strategic-axes/${axis.id}`);
+      setSuccess(response.message || 'Eje estratégico eliminado exitosamente');
       loadStrategicAxes();
     } catch (error) {
       console.error('Error deleting strategic axis:', error);
-      setError(error.response?.data?.message || 'Error al eliminar el eje estratégico');
+      setError(error.message || 'Error al eliminar el eje estratégico');
     }
   };
 

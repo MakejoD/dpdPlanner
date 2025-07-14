@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{documentTitle}}</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2196F3;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #1976D2;
+            font-size: 20px;
+            margin: 0;
+            font-weight: bold;
+        }
+        
+        .header h2 {
+            color: #666;
+            font-size: 16px;
+            margin: 5px 0;
+            font-weight: normal;
+        }
+        
+        .metadata {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 25px;
+        }
+        
+        .metadata table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .metadata td {
+            padding: 5px;
+            border: none;
+        }
+        
+        .metadata .label {
+            font-weight: bold;
+            color: #1976D2;
+            width: 30%;
+        }
+        
+        .strategic-axis {
+            margin-bottom: 40px;
+            page-break-inside: avoid;
+        }
+        
+        .axis-header {
+            background: #1976D2;
+            color: white;
+            padding: 12px;
+            border-radius: 5px 5px 0 0;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .axis-content {
+            border: 2px solid #1976D2;
+            border-top: none;
+            padding: 15px;
+            border-radius: 0 0 5px 5px;
+        }
+        
+        .objective {
+            margin-bottom: 25px;
+            border-left: 4px solid #4CAF50;
+            padding-left: 15px;
+        }
+        
+        .objective-title {
+            font-weight: bold;
+            color: #388E3C;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+        
+        .product {
+            margin-bottom: 20px;
+            margin-left: 20px;
+        }
+        
+        .product-title {
+            font-weight: bold;
+            color: #FF9800;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .activities-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 11px;
+        }
+        
+        .activities-table th {
+            background: #E3F2FD;
+            color: #1976D2;
+            padding: 8px;
+            border: 1px solid #BBDEFB;
+            font-weight: bold;
+            text-align: left;
+        }
+        
+        .activities-table td {
+            padding: 6px 8px;
+            border: 1px solid #E1E1E1;
+            vertical-align: top;
+        }
+        
+        .activities-table tr:nth-child(even) {
+            background: #FAFAFA;
+        }
+        
+        .budget-amount {
+            text-align: right;
+            font-weight: bold;
+            color: #388E3C;
+        }
+        
+        .indicators-section {
+            margin-top: 15px;
+            background: #FFF3E0;
+            padding: 10px;
+            border-radius: 3px;
+        }
+        
+        .indicators-title {
+            font-weight: bold;
+            color: #F57C00;
+            margin-bottom: 8px;
+        }
+        
+        .indicator-item {
+            margin-bottom: 5px;
+            font-size: 10px;
+        }
+        
+        .summary-section {
+            margin-top: 40px;
+            padding: 20px;
+            background: #E8F5E8;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+        
+        .summary-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #2E7D32;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            margin: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1976D2;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+            border-top: 1px solid #E1E1E1;
+            padding-top: 15px;
+        }
+        
+        @media print {
+            body { margin: 0; }
+            .strategic-axis { page-break-inside: avoid; }
+            .summary-section { page-break-before: always; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>{{institution.name}}</h1>
+        <h2>{{documentTitle}}</h2>
+        <h2>Período {{institution.year}}</h2>
+    </div>
+
+    <!-- Metadata -->
+    <div class="metadata">
+        <table>
+            <tr>
+                <td class="label">Tipo de Documento:</td>
+                <td>{{#if departmentInfo}}POA Departamental - {{departmentInfo.name}}{{else}}POA Institucional Completo{{/if}}</td>
+            </tr>
+            <tr>
+                <td class="label">Fecha de Generación:</td>
+                <td>{{formatDate institution.generatedAt}}</td>
+            </tr>
+            <tr>
+                <td class="label">Generado por:</td>
+                <td>{{institution.generatedBy}}</td>
+            </tr>
+            <tr>
+                <td class="label">Total de Ejes:</td>
+                <td>{{metadata.totalEjes}} Ejes Estratégicos</td>
+            </tr>
+            <tr>
+                <td class="label">Total de Objetivos:</td>
+                <td>{{metadata.totalObjetivos}} Objetivos</td>
+            </tr>
+            <tr>
+                <td class="label">Total de Actividades:</td>
+                <td>{{metadata.totalActividades}} Actividades</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Strategic Axes Content -->
+    {{#each strategicAxes}}
+    <div class="strategic-axis">
+        <div class="axis-header">
+            {{code}} - {{name}}
+        </div>
+        <div class="axis-content">
+            <p><strong>Descripción:</strong> {{description}}</p>
+            
+            {{#each objectives}}
+            <div class="objective">
+                <div class="objective-title">
+                    {{code}} - {{name}}
+                </div>
+                <p>{{description}}</p>
+                
+                {{#each products}}
+                <div class="product">
+                    <div class="product-title">
+                        {{code}} - {{name}}
+                    </div>
+                    
+                    {{#if activities.length}}
+                    <table class="activities-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%">Código</th>
+                                <th style="width: 35%">Actividad</th>
+                                <th style="width: 20%">Responsable</th>
+                                {{#if ../../../options.includeBudget}}
+                                <th style="width: 15%">Presupuesto</th>
+                                {{/if}}
+                                <th style="width: 15%">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{#each activities}}
+                            <tr>
+                                <td>{{code}}</td>
+                                <td>{{name}}</td>
+                                <td>{{responsibleDepartment.name}}</td>
+                                {{#if ../../../../options.includeBudget}}
+                                <td class="budget-amount">
+                                    {{#if budgetExecution.length}}
+                                        ${{formatCurrency (sum budgetExecution 'assignedAmount')}}
+                                    {{else}}
+                                        $0
+                                    {{/if}}
+                                </td>
+                                {{/if}}
+                                <td>{{status}}</td>
+                            </tr>
+                            
+                            {{#if ../../../../options.includeIndicators}}
+                            {{#if indicators.length}}
+                            <tr>
+                                <td colspan="{{#if ../../../../options.includeBudget}}5{{else}}4{{/if}}">
+                                    <div class="indicators-section">
+                                        <div class="indicators-title">Indicadores:</div>
+                                        {{#each indicators}}
+                                        <div class="indicator-item">
+                                            • {{name}} ({{type}}) - Meta: {{targetQ1}}+{{targetQ2}}+{{targetQ3}}+{{targetQ4}} {{unit}}
+                                        </div>
+                                        {{/each}}
+                                    </div>
+                                </td>
+                            </tr>
+                            {{/if}}
+                            {{/if}}
+                            {{/each}}
+                        </tbody>
+                    </table>
+                    {{else}}
+                    <p><em>No hay actividades registradas para este producto.</em></p>
+                    {{/if}}
+                </div>
+                {{/each}}
+            </div>
+            {{/each}}
+        </div>
+    </div>
+    {{/each}}
+
+    <!-- Summary Section -->
+    {{#if showSummary}}
+    <div class="summary-section">
+        <div class="summary-title">Resumen Ejecutivo del POA</div>
+        <div class="summary-stats">
+            <div class="stat-box">
+                <div class="stat-number">{{metadata.totalEjes}}</div>
+                <div class="stat-label">Ejes Estratégicos</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{metadata.totalObjetivos}}</div>
+                <div class="stat-label">Objetivos</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-number">{{metadata.totalActividades}}</div>
+                <div class="stat-label">Actividades</div>
+            </div>
+            {{#if options.includeBudget}}
+            <div class="stat-box">
+                <div class="stat-number">${{formatCurrency totalBudget}}</div>
+                <div class="stat-label">Presupuesto Total</div>
+            </div>
+            {{/if}}
+        </div>
+    </div>
+    {{/if}}
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>Documento generado automáticamente por el Sistema POA</p>
+        <p>{{institution.name}} - {{institution.year}}</p>
+    </div>
+</body>
+</html>

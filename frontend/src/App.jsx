@@ -27,6 +27,8 @@ import ApprovalManagement from './pages/tracking/ApprovalManagement'
 import BudgetExecution from './pages/budget/BudgetExecution'
 import Reports from './pages/reports/Reports'
 import Profile from './pages/profile/Profile'
+import TestDepartments from './TestDepartments'
+import TestSessionPersistence from './TestSessionPersistence'
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -83,6 +85,8 @@ function App() {
         {/* Test route */}
         <Route path="/test" element={<TestLogin />} />
         <Route path="/test-approval" element={<ApprovalSystemTest />} />
+        <Route path="/test-departments" element={<TestDepartments />} />
+        <Route path="/test-session" element={<TestSessionPersistence />} />
 
         {/* Rutas protegidas */}
         <Route 

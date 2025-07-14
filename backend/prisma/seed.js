@@ -172,13 +172,22 @@ async function main() {
       (p.action === 'read' && ['progress_report', 'dashboard', 'department'].includes(p.resource))
     );
     
-    await prisma.rolePermission.createMany({
-      data: planningPermissions.map(permission => ({
-        roleId: planningDirectorRole.id,
-        permissionId: permission.id
-      })),
-      skipDuplicates: true
-    });
+    // Asignar permisos al Director de Planificación uno por uno
+    for (const permission of planningPermissions) {
+      await prisma.rolePermission.upsert({
+        where: {
+          roleId_permissionId: {
+            roleId: planningDirectorRole.id,
+            permissionId: permission.id
+          }
+        },
+        update: {},
+        create: {
+          roleId: planningDirectorRole.id,
+          permissionId: permission.id
+        }
+      });
+    }
 
     // Director de Área: lectura y aprobación de reportes
     const areaDirectorPermissions = allPermissions.filter(p => 

@@ -165,9 +165,15 @@ export const AuthProvider = ({ children }) => {
         payload: userData
       })
 
+      return userData
+
     } catch (error) {
       console.error('Error al obtener perfil:', error)
-      dispatch({ type: 'AUTH_ERROR' })
+      // Si es error 401, el token es inválido
+      if (error.message.includes('401') || error.message.includes('Token inválido')) {
+        dispatch({ type: 'AUTH_ERROR' })
+      }
+      return null
     }
   }
 
@@ -212,9 +218,38 @@ export const AuthProvider = ({ children }) => {
         return
       }
 
-      // Por ahora solo verificamos que existe el token
-      // TODO: Implementar verificación completa cuando el backend esté listo
-      dispatch({ type: 'SET_LOADING', payload: false })
+      try {
+        dispatch({ type: 'SET_LOADING', payload: true })
+        
+        // Verificar token con el servidor y obtener datos del usuario
+        const response = await httpClient.get('/auth/me')
+        
+        if (response.data && response.data.id) {
+          // El token es válido, restaurar sesión
+          dispatch({
+            type: 'AUTH_SUCCESS',
+            payload: {
+              user: response.data,
+              token: token
+            }
+          })
+          
+          console.log('✅ Sesión restaurada automáticamente para:', response.data.email)
+          // No mostrar toast para evitar spam en cada recarga
+          // toast.success('Sesión restaurada automáticamente')
+        } else {
+          // Token inválido
+          throw new Error('Token inválido')
+        }
+        
+      } catch (error) {
+        console.error('❌ Error verificando token:', error)
+        // Token inválido o expirado, limpiar sesión
+        localStorage.removeItem('token')
+        dispatch({ type: 'AUTH_ERROR' })
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
+      }
     }
 
     verifyToken()

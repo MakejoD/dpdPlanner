@@ -1,5 +1,31 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
+// Función helper para manejar errores 401
+const handleUnauthorized = () => {
+  localStorage.removeItem('token')
+  // Recargar la página para forzar logout
+  if (window.location.pathname !== '/login') {
+    window.location.href = '/login'
+  }
+}
+
+// Función helper para manejar respuestas HTTP
+const handleResponse = async (response) => {
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
+    
+    // Manejar errores 401 automáticamente
+    if (response.status === 401) {
+      handleUnauthorized()
+    }
+    
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+  }
+  
+  const jsonData = await response.json()
+  return { data: jsonData }
+}
+
 // Función helper para construir URLs correctamente
 const buildUrl = (endpoint) => {
   // Remover slash inicial del endpoint si existe
@@ -23,14 +49,7 @@ const httpClient = {
       ...options,
     })
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const jsonData = await response.json()
-    // Envolver la respuesta en un objeto data para consistencia con el frontend
-    return { data: jsonData }
+    return handleResponse(response)
   },
   
   post: async (url, data, options = {}) => {
@@ -51,14 +70,7 @@ const httpClient = {
       ...options,
     })
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const jsonData = await response.json()
-    // Envolver la respuesta en un objeto data para consistencia con el frontend
-    return { data: jsonData }
+    return handleResponse(response)
   },
   
   put: async (url, data, options = {}) => {
@@ -79,14 +91,7 @@ const httpClient = {
       ...options,
     })
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const jsonData = await response.json()
-    // Envolver la respuesta en un objeto data para consistencia con el frontend
-    return { data: jsonData }
+    return handleResponse(response)
   },
   
   delete: async (url, options = {}) => {
@@ -101,14 +106,7 @@ const httpClient = {
       ...options,
     })
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-    }
-    
-    const jsonData = await response.json()
-    // Envolver la respuesta en un objeto data para consistencia con el frontend
-    return { data: jsonData }
+    return handleResponse(response)
   },
 }
 

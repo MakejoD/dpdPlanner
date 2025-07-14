@@ -10,8 +10,9 @@ const handleUnauthorized = () => {
 }
 
 // Función helper para manejar respuestas HTTP
-const handleResponse = async (response) => {
+const handleResponse = async (response, options = {}) => {
   if (!response.ok) {
+    // Para errores, siempre intentar parsear como JSON
     const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
     
     // Manejar errores 401 automáticamente
@@ -22,6 +23,25 @@ const handleResponse = async (response) => {
     throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
   }
   
+  // Si se especifica responseType como 'blob', retornar el blob directamente
+  if (options.responseType === 'blob') {
+    const blob = await response.blob()
+    return { 
+      data: blob,
+      headers: Object.fromEntries(response.headers.entries())
+    }
+  }
+  
+  // Si se especifica responseType como 'arraybuffer', retornar el buffer
+  if (options.responseType === 'arraybuffer') {
+    const buffer = await response.arrayBuffer()
+    return { 
+      data: buffer,
+      headers: Object.fromEntries(response.headers.entries())
+    }
+  }
+  
+  // Por defecto, parsear como JSON
   const jsonData = await response.json()
   return { data: jsonData }
 }
@@ -49,7 +69,7 @@ const httpClient = {
       ...options,
     })
     
-    return handleResponse(response)
+    return handleResponse(response, options)
   },
   
   post: async (url, data, options = {}) => {
@@ -70,7 +90,7 @@ const httpClient = {
       ...options,
     })
     
-    return handleResponse(response)
+    return handleResponse(response, options)
   },
   
   put: async (url, data, options = {}) => {
@@ -91,7 +111,7 @@ const httpClient = {
       ...options,
     })
     
-    return handleResponse(response)
+    return handleResponse(response, options)
   },
   
   delete: async (url, options = {}) => {
@@ -106,7 +126,7 @@ const httpClient = {
       ...options,
     })
     
-    return handleResponse(response)
+    return handleResponse(response, options)
   },
 }
 

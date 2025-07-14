@@ -134,9 +134,22 @@ const Reports = () => {
     try {
       setGenerating(true)
       
+      console.log('📤 Enviando datos para generación:', formData)
+      
       const response = await httpClient.post('/reports/generate-poa', formData, {
         responseType: 'blob'
       })
+
+      console.log('📥 Respuesta recibida:', {
+        size: response.data.size,
+        type: response.data.type,
+        headers: response.headers
+      })
+
+      // Verificar que la respuesta sea válida
+      if (!response.data || response.data.size === 0) {
+        throw new Error('Respuesta vacía del servidor')
+      }
 
       // Crear enlace de descarga
       const url = window.URL.createObjectURL(new Blob([response.data]))
@@ -153,8 +166,30 @@ const Reports = () => {
       link.remove()
       window.URL.revokeObjectURL(url)
 
+      console.log('✅ Descarga iniciada:', fileName)
+
     } catch (error) {
-      console.error('Error generando documento:', error)
+      console.error('❌ Error generando documento:', error)
+      
+      // Mostrar error más detallado
+      if (error.response) {
+        console.error('Status:', error.response.status)
+        console.error('Headers:', error.response.headers)
+        if (error.response.data instanceof Blob) {
+          // Si es un blob, intentar leer como texto para ver el error
+          const reader = new FileReader()
+          reader.onload = () => {
+            console.error('Error del servidor:', reader.result)
+          }
+          reader.readAsText(error.response.data)
+        } else {
+          console.error('Data:', error.response.data)
+        }
+      }
+      
+      // Mostrar mensaje al usuario
+      alert('Error generando documento: ' + (error.message || 'Error desconocido'))
+      
     } finally {
       setGenerating(false)
     }

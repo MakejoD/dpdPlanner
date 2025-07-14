@@ -75,7 +75,7 @@ const ApprovalManagement = () => {
   const loadPendingReports = async () => {
     try {
       const response = await httpClient.get('/approvals/pending');
-      setPendingReports(response.data?.data || []);
+      setPendingReports(response.data?.data?.reports || []);
     } catch (error) {
       console.error('Error loading pending reports:', error);
     }
@@ -93,7 +93,7 @@ const ApprovalManagement = () => {
   const loadStats = async () => {
     try {
       const response = await httpClient.get('/approvals/stats');
-      setStats(response.data?.data || {});
+      setStats(response.data?.data?.summary || {});
     } catch (error) {
       console.error('Error loading stats:', error);
     }
@@ -102,11 +102,24 @@ const ApprovalManagement = () => {
   const handleApprovalAction = async () => {
     if (!selectedReport || !actionType) return;
 
+    // Validación para rechazo
+    if (actionType === 'reject' && comments.trim().length < 10) {
+      showSnackbar('La razón del rechazo debe tener al menos 10 caracteres', 'error');
+      return;
+    }
+
     try {
       const endpoint = actionType === 'approve' ? 'approve' : 'reject';
-      await httpClient.post(`/approvals/${selectedReport.id}/${endpoint}`, {
-        comments: comments.trim()
-      });
+      const payload = {};
+      
+      if (actionType === 'approve') {
+        payload.comments = comments.trim();
+      } else {
+        payload.rejectionReason = comments.trim();
+        payload.comments = comments.trim(); // También como comentario adicional
+      }
+      
+      await httpClient.post(`/approvals/${selectedReport.id}/${endpoint}`, payload);
 
       showSnackbar(`Reporte ${actionType === 'approve' ? 'aprobado' : 'rechazado'} exitosamente`, 'success');
       
@@ -454,10 +467,22 @@ const ApprovalManagement = () => {
                 fullWidth
                 multiline
                 rows={4}
-                label="Comentarios"
+                label={actionType === 'approve' ? 'Comentarios (opcional)' : 'Razón del rechazo (requerido)'}
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
-                placeholder={`Ingresa comentarios para ${actionType === 'approve' ? 'la aprobación' : 'el rechazo'}...`}
+                placeholder={actionType === 'approve' 
+                  ? 'Ingresa comentarios para la aprobación...' 
+                  : 'Explica detalladamente la razón del rechazo (mínimo 10 caracteres)...'
+                }
+                required={actionType === 'reject'}
+                error={actionType === 'reject' && comments.length > 0 && comments.length < 10}
+                helperText={
+                  actionType === 'reject' && comments.length > 0 && comments.length < 10
+                    ? `Mínimo 10 caracteres (actual: ${comments.length})`
+                    : actionType === 'reject' 
+                      ? 'La razón del rechazo es obligatoria'
+                      : ''
+                }
                 sx={{ mt: 2 }}
               />
             </>

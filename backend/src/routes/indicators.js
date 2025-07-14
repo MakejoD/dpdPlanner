@@ -57,6 +57,72 @@ const indicatorValidation = [
     .isFloat({ min: 0 })
     .withMessage('La meta Q4 debe ser un número positivo'),
   
+  body('reportingFrequency')
+    .optional()
+    .isIn(['QUARTERLY', 'MONTHLY'])
+    .withMessage('La frecuencia de reporte debe ser QUARTERLY o MONTHLY'),
+  
+  // Monthly targets validation (optional)
+  body('jan_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de enero debe ser un número positivo'),
+  
+  body('feb_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de febrero debe ser un número positivo'),
+  
+  body('mar_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de marzo debe ser un número positivo'),
+  
+  body('apr_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de abril debe ser un número positivo'),
+  
+  body('may_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de mayo debe ser un número positivo'),
+  
+  body('jun_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de junio debe ser un número positivo'),
+  
+  body('jul_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de julio debe ser un número positivo'),
+  
+  body('aug_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de agosto debe ser un número positivo'),
+  
+  body('sep_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de septiembre debe ser un número positivo'),
+  
+  body('oct_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de octubre debe ser un número positivo'),
+  
+  body('nov_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de noviembre debe ser un número positivo'),
+  
+  body('dec_target')
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage('La meta de diciembre debe ser un número positivo'),
+  
   // Validar que al menos uno de los niveles esté especificado
   body()
     .custom((value) => {
@@ -349,10 +415,23 @@ router.post('/',
         measurementUnit,
         baseline = 0,
         annualTarget,
+        reportingFrequency = 'QUARTERLY',
         q1Target = 0,
         q2Target = 0,
         q3Target = 0,
         q4Target = 0,
+        jan_target = 0,
+        feb_target = 0,
+        mar_target = 0,
+        apr_target = 0,
+        may_target = 0,
+        jun_target = 0,
+        jul_target = 0,
+        aug_target = 0,
+        sep_target = 0,
+        oct_target = 0,
+        nov_target = 0,
+        dec_target = 0,
         strategicAxisId,
         objectiveId,
         productId,
@@ -397,10 +476,23 @@ router.post('/',
           measurementUnit,
           baseline,
           annualTarget,
+          reportingFrequency: reportingFrequency || 'QUARTERLY',
           q1Target,
           q2Target,
           q3Target,
           q4Target,
+          jan_target,
+          feb_target,
+          mar_target,
+          apr_target,
+          may_target,
+          jun_target,
+          jul_target,
+          aug_target,
+          sep_target,
+          oct_target,
+          nov_target,
+          dec_target,
           strategicAxisId,
           objectiveId,
           productId,
@@ -470,10 +562,23 @@ router.put('/:id',
         measurementUnit,
         baseline,
         annualTarget,
+        reportingFrequency,
         q1Target,
         q2Target,
         q3Target,
         q4Target,
+        jan_target,
+        feb_target,
+        mar_target,
+        apr_target,
+        may_target,
+        jun_target,
+        jul_target,
+        aug_target,
+        sep_target,
+        oct_target,
+        nov_target,
+        dec_target,
         strategicAxisId,
         objectiveId,
         productId,
@@ -529,10 +634,23 @@ router.put('/:id',
           measurementUnit,
           baseline,
           annualTarget,
+          reportingFrequency,
           q1Target,
           q2Target,
           q3Target,
           q4Target,
+          jan_target,
+          feb_target,
+          mar_target,
+          apr_target,
+          may_target,
+          jun_target,
+          jul_target,
+          aug_target,
+          sep_target,
+          oct_target,
+          nov_target,
+          dec_target,
           strategicAxisId,
           objectiveId,
           productId,

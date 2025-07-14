@@ -19,6 +19,9 @@ const budgetExecutionRoutes = require('./routes/budgetExecution');
 const approvalsRoutes = require('./routes/approvals');
 const progressReportRoutes = require('./routes/progressReports');
 const reportsRoutes = require('./routes/reports');
+// Nuevas rutas del módulo PAC
+const procurementProcessRoutes = require('./routes/procurementProcesses');
+const activityProcurementLinkRoutes = require('./routes/activityProcurementLinks');
 // const budgetRoutes = require('./routes/budget');
 // const dashboardRoutes = require('./routes/dashboard');
 
@@ -84,6 +87,9 @@ app.use('/api/budget-execution', budgetExecutionRoutes);
 app.use('/api/approvals', approvalsRoutes);
 app.use('/api/progress-reports', progressReportRoutes);
 app.use('/api/reports', reportsRoutes);
+// Nuevas rutas del módulo PAC
+app.use('/api/procurement-processes', procurementProcessRoutes);
+app.use('/api/activity-procurement-links', activityProcurementLinkRoutes);
 // app.use('/api/budget', budgetRoutes);
 // app.use('/api/dashboard', dashboardRoutes);
 

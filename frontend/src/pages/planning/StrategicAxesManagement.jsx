@@ -40,7 +40,8 @@ import {
   Download as DownloadIcon,
   Business as BusinessIcon,
   TrendingUp as TrendingUpIcon,
-  Assignment as AssignmentIcon
+  Assignment as AssignmentIcon,
+  Flag as FlagIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import { httpClient } from '../../utils/api';
@@ -256,7 +257,7 @@ const StrategicAxesManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom display="flex" alignItems="center">
-          <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
+          <FlagIcon sx={{ mr: 2, color: 'primary.main' }} />
           Gestión de Ejes Estratégicos
         </Typography>
         <Typography variant="body1" color="text.secondary">

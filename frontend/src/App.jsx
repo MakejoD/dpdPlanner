@@ -30,6 +30,11 @@ import Profile from './pages/profile/Profile'
 import TestDepartments from './TestDepartments'
 import TestSessionPersistence from './TestSessionPersistence'
 
+// Módulo PAC (Plan Anual de Compras)
+import ProcurementManagement from './pages/procurement/ProcurementManagement'
+import POAPACLinking from './pages/procurement/POAPACLinking'
+import PACReports from './pages/procurement/PACReports'
+
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children, requiredPermission }) => {
   const { isAuthenticated, hasPermission, loading } = useAuth()
@@ -220,6 +225,33 @@ function App() {
                     element={
                       <ProtectedRoute requiredPermission="read:budget">
                         <BudgetExecution />
+                      </ProtectedRoute>
+                    } 
+                  />
+
+                  {/* Plan Anual de Compras (PAC) */}
+                  <Route path="/procurement" element={<Navigate to="/procurement/processes" replace />} />
+                  <Route 
+                    path="/procurement/processes" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:procurement_process">
+                        <ProcurementManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/procurement/poa-linking" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:activity_procurement_link">
+                        <POAPACLinking />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/procurement/reports" 
+                    element={
+                      <ProtectedRoute requiredPermission="read:procurement_process">
+                        <PACReports />
                       </ProtectedRoute>
                     } 
                   />

@@ -38,7 +38,16 @@ import {
   Security as SecurityIcon,
   Business as BusinessIcon,
   Timeline as TimelineIcon,
-  BarChart as BarChartIcon
+  BarChart as BarChartIcon,
+  ShoppingCart as ShoppingCartIcon,
+  Flag as FlagIcon,
+  Task as TaskIcon,
+  Analytics as AnalyticsIcon,
+  Link as LinkIcon,
+  Description as DescriptionIcon,
+  ListAlt as ListAltIcon,
+  Speed as SpeedIcon,
+  Inventory as InventoryIcon
 } from '@mui/icons-material'
 
 import { useAuth } from '../../contexts/AuthContext'
@@ -57,7 +66,8 @@ const DashboardLayout = ({ children }) => {
   const [expandedMenus, setExpandedMenus] = useState({
     admin: false,
     planning: false,
-    tracking: false
+    tracking: false,
+    procurement: false
   })
 
   // Configuración del menú de navegación
@@ -104,7 +114,7 @@ const DashboardLayout = ({ children }) => {
       children: [
         {
           title: 'Ejes Estratégicos',
-          icon: <TimelineIcon />,
+          icon: <FlagIcon />,
           path: '/planning/strategic-axes',
           permission: 'read:strategic_axis'
         },
@@ -116,21 +126,27 @@ const DashboardLayout = ({ children }) => {
         },
         {
           title: 'Productos/Servicios',
-          icon: <BarChartIcon />,
+          icon: <InventoryIcon />,
           path: '/planning/products',
           permission: 'read:product'
         },
         {
           title: 'Actividades',
-          icon: <AssignmentIcon />,
+          icon: <TaskIcon />,
           path: '/planning/activities',
           permission: 'read:activity'
         },
         {
           title: 'Indicadores',
-          icon: <TrendingUpIcon />,
+          icon: <SpeedIcon />,
           path: '/planning/indicators',
           permission: 'read:indicator'
+        },
+        {
+          title: 'Generar POA',
+          icon: <DescriptionIcon />,
+          path: '/reports',
+          permission: 'read:dashboard'
         }
       ]
     },
@@ -143,7 +159,7 @@ const DashboardLayout = ({ children }) => {
       children: [
         {
           title: 'Informes de Avances',
-          icon: <AssignmentIcon />,
+          icon: <ListAltIcon />,
           path: '/tracking/progress',
           permission: 'read:progress_report'
         },
@@ -155,9 +171,36 @@ const DashboardLayout = ({ children }) => {
         },
         {
           title: 'Indicadores',
-          icon: <BarChartIcon />,
+          icon: <SpeedIcon />,
           path: '/tracking/indicators',
           permission: 'read:indicator'
+        }
+      ]
+    },
+    {
+      title: 'Plan Anual de Compras',
+      icon: <ShoppingCartIcon />,
+      expandable: true,
+      key: 'procurement',
+      permission: 'read:procurement_process',
+      children: [
+        {
+          title: 'Procesos de Compra',
+          icon: <ShoppingCartIcon />,
+          path: '/procurement/processes',
+          permission: 'read:procurement_process'
+        },
+        {
+          title: 'Vinculación POA-PAC',
+          icon: <LinkIcon />,
+          path: '/procurement/poa-linking',
+          permission: 'read:activity_procurement_link'
+        },
+        {
+          title: 'Reportes PAC',
+          icon: <BarChartIcon />,
+          path: '/procurement/reports',
+          permission: 'read:procurement_process'
         }
       ]
     },
@@ -166,12 +209,6 @@ const DashboardLayout = ({ children }) => {
       icon: <MoneyIcon />,
       path: '/budget/execution',
       permission: 'read:budget'
-    },
-    {
-      title: 'Reportes',
-      icon: <ReportsIcon />,
-      path: '/reports',
-      permission: 'read:dashboard'
     }
   ]
 

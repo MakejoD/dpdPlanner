@@ -39,8 +39,8 @@ const ApprovalsDashboard = () => {
         httpClient.get('/approvals/pending')
       ]);
 
-      setStats(statsResponse.data?.summary || {});
-      setPendingReports(pendingResponse.data?.reports?.slice(0, 5) || []);
+      setStats(statsResponse.data?.data?.summary || {});
+      setPendingReports(pendingResponse.data?.data?.reports?.slice(0, 5) || []);
     } catch (error) {
       console.error('Error loading approval data:', error);
     } finally {

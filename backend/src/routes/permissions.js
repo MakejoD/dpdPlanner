@@ -401,7 +401,29 @@ router.post('/seed',
         
         // Permisos de dashboard
         { action: 'read', resource: 'dashboard' },
-        { action: 'export', resource: 'report' }
+        { action: 'export', resource: 'report' },
+        
+        // ========== NUEVOS PERMISOS DEL MÓDULO PAC ==========
+        
+        // Permisos de procesos de compra (procurement_process)
+        { action: 'create', resource: 'procurement_process' },
+        { action: 'read', resource: 'procurement_process' },
+        { action: 'update', resource: 'procurement_process' },
+        { action: 'delete', resource: 'procurement_process' },
+        { action: 'approve', resource: 'procurement_process' },
+        { action: 'publish', resource: 'procurement_process' },
+        { action: 'cancel', resource: 'procurement_process' },
+        { action: 'award', resource: 'procurement_process' }, // Adjudicar proceso
+        
+        // Permisos de vinculación POA-PAC
+        { action: 'create', resource: 'activity_procurement_link' },
+        { action: 'read', resource: 'activity_procurement_link' },
+        { action: 'update', resource: 'activity_procurement_link' },
+        { action: 'delete', resource: 'activity_procurement_link' },
+        
+        // Permisos de solicitud de compras
+        { action: 'request', resource: 'procurement_process' }, // Solicitar proceso de compra
+        { action: 'track', resource: 'procurement_process' }    // Hacer seguimiento de procesos
       ];
 
       // Crear permisos en lotes (ignorar duplicados)

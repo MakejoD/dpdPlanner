@@ -95,10 +95,24 @@ const IndicatorManagement = () => {
     measurementUnit: '',
     baseline: 0,
     annualTarget: 0,
+    reportingFrequency: 'QUARTERLY', // QUARTERLY or MONTHLY
     q1Target: 0,
     q2Target: 0,
     q3Target: 0,
     q4Target: 0,
+    // Monthly targets
+    jan_target: 0,
+    feb_target: 0,
+    mar_target: 0,
+    apr_target: 0,
+    may_target: 0,
+    jun_target: 0,
+    jul_target: 0,
+    aug_target: 0,
+    sep_target: 0,
+    oct_target: 0,
+    nov_target: 0,
+    dec_target: 0,
     level: '', // strategicAxis, objective, product, activity
     levelId: '',
     isActive: true
@@ -232,10 +246,23 @@ const IndicatorManagement = () => {
         measurementUnit: '',
         baseline: 0,
         annualTarget: 0,
+        reportingFrequency: 'QUARTERLY',
         q1Target: 0,
         q2Target: 0,
         q3Target: 0,
         q4Target: 0,
+        jan_target: 0,
+        feb_target: 0,
+        mar_target: 0,
+        apr_target: 0,
+        may_target: 0,
+        jun_target: 0,
+        jul_target: 0,
+        aug_target: 0,
+        sep_target: 0,
+        oct_target: 0,
+        nov_target: 0,
+        dec_target: 0,
         level: '',
         levelId: '',
         isActive: true
@@ -266,10 +293,23 @@ const IndicatorManagement = () => {
         measurementUnit: indicator.measurementUnit,
         baseline: indicator.baseline || 0,
         annualTarget: indicator.annualTarget,
+        reportingFrequency: indicator.reportingFrequency || 'QUARTERLY',
         q1Target: indicator.q1Target || 0,
         q2Target: indicator.q2Target || 0,
         q3Target: indicator.q3Target || 0,
         q4Target: indicator.q4Target || 0,
+        jan_target: indicator.jan_target || 0,
+        feb_target: indicator.feb_target || 0,
+        mar_target: indicator.mar_target || 0,
+        apr_target: indicator.apr_target || 0,
+        may_target: indicator.may_target || 0,
+        jun_target: indicator.jun_target || 0,
+        jul_target: indicator.jul_target || 0,
+        aug_target: indicator.aug_target || 0,
+        sep_target: indicator.sep_target || 0,
+        oct_target: indicator.oct_target || 0,
+        nov_target: indicator.nov_target || 0,
+        dec_target: indicator.dec_target || 0,
         level,
         levelId,
         isActive: indicator.isActive
@@ -298,10 +338,23 @@ const IndicatorManagement = () => {
         measurementUnit: formData.measurementUnit,
         baseline: parseFloat(formData.baseline) || 0,
         annualTarget: parseFloat(formData.annualTarget),
+        reportingFrequency: formData.reportingFrequency,
         q1Target: parseFloat(formData.q1Target) || 0,
         q2Target: parseFloat(formData.q2Target) || 0,
         q3Target: parseFloat(formData.q3Target) || 0,
         q4Target: parseFloat(formData.q4Target) || 0,
+        jan_target: parseFloat(formData.jan_target) || 0,
+        feb_target: parseFloat(formData.feb_target) || 0,
+        mar_target: parseFloat(formData.mar_target) || 0,
+        apr_target: parseFloat(formData.apr_target) || 0,
+        may_target: parseFloat(formData.may_target) || 0,
+        jun_target: parseFloat(formData.jun_target) || 0,
+        jul_target: parseFloat(formData.jul_target) || 0,
+        aug_target: parseFloat(formData.aug_target) || 0,
+        sep_target: parseFloat(formData.sep_target) || 0,
+        oct_target: parseFloat(formData.oct_target) || 0,
+        nov_target: parseFloat(formData.nov_target) || 0,
+        dec_target: parseFloat(formData.dec_target) || 0,
         isActive: formData.isActive
       };
 
@@ -607,6 +660,7 @@ const IndicatorManagement = () => {
                 <TableCell>Tipo</TableCell>
                 <TableCell>Nivel</TableCell>
                 <TableCell>Unidad de Medida</TableCell>
+                <TableCell>Frecuencia</TableCell>
                 <TableCell>Meta Anual</TableCell>
                 <TableCell>Progreso</TableCell>
                 <TableCell>Estado</TableCell>
@@ -639,6 +693,13 @@ const IndicatorManagement = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>{indicator.measurementUnit}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={indicator.reportingFrequency === 'QUARTERLY' ? 'Trimestral' : 'Mensual'}
+                      color={indicator.reportingFrequency === 'QUARTERLY' ? 'primary' : 'secondary'}
+                      size="small"
+                    />
+                  </TableCell>
                   <TableCell>{indicator.annualTarget}</TableCell>
                   <TableCell>
                     {indicator.currentProgress && (
@@ -687,7 +748,7 @@ const IndicatorManagement = () => {
               ))}
               {indicators.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} align="center">
+                  <TableCell colSpan={9} align="center">
                     <Typography variant="body2" color="text.secondary">
                       No se encontraron indicadores
                     </Typography>
@@ -775,6 +836,21 @@ const IndicatorManagement = () => {
 
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
+                <InputLabel>Frecuencia de Reporte</InputLabel>
+                <Select
+                  value={formData.reportingFrequency}
+                  onChange={(e) => setFormData({ ...formData, reportingFrequency: e.target.value })}
+                  label="Frecuencia de Reporte"
+                  disabled={dialogMode === 'view'}
+                >
+                  <MenuItem value="QUARTERLY">Trimestral</MenuItem>
+                  <MenuItem value="MONTHLY">Mensual</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
                 <InputLabel>Nivel de Vinculación</InputLabel>
                 <Select
                   value={formData.level}
@@ -837,57 +913,196 @@ const IndicatorManagement = () => {
 
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom>
-                Metas Trimestrales
+                {formData.reportingFrequency === 'QUARTERLY' ? 'Metas Trimestrales' : 'Metas Mensuales'}
               </Typography>
             </Grid>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Meta Q1"
-                type="number"
-                value={formData.q1Target}
-                onChange={(e) => setFormData({ ...formData, q1Target: e.target.value })}
-                fullWidth
-                disabled={dialogMode === 'view'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
+            {formData.reportingFrequency === 'QUARTERLY' ? (
+              <>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Meta Q1"
+                    type="number"
+                    value={formData.q1Target}
+                    onChange={(e) => setFormData({ ...formData, q1Target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Meta Q2"
-                type="number"
-                value={formData.q2Target}
-                onChange={(e) => setFormData({ ...formData, q2Target: e.target.value })}
-                fullWidth
-                disabled={dialogMode === 'view'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Meta Q2"
+                    type="number"
+                    value={formData.q2Target}
+                    onChange={(e) => setFormData({ ...formData, q2Target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Meta Q3"
-                type="number"
-                value={formData.q3Target}
-                onChange={(e) => setFormData({ ...formData, q3Target: e.target.value })}
-                fullWidth
-                disabled={dialogMode === 'view'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Meta Q3"
+                    type="number"
+                    value={formData.q3Target}
+                    onChange={(e) => setFormData({ ...formData, q3Target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Meta Q4"
-                type="number"
-                value={formData.q4Target}
-                onChange={(e) => setFormData({ ...formData, q4Target: e.target.value })}
-                fullWidth
-                disabled={dialogMode === 'view'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Meta Q4"
+                    type="number"
+                    value={formData.q4Target}
+                    onChange={(e) => setFormData({ ...formData, q4Target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+              </>
+            ) : (
+              <>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Enero"
+                    type="number"
+                    value={formData.jan_target}
+                    onChange={(e) => setFormData({ ...formData, jan_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Febrero"
+                    type="number"
+                    value={formData.feb_target}
+                    onChange={(e) => setFormData({ ...formData, feb_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Marzo"
+                    type="number"
+                    value={formData.mar_target}
+                    onChange={(e) => setFormData({ ...formData, mar_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Abril"
+                    type="number"
+                    value={formData.apr_target}
+                    onChange={(e) => setFormData({ ...formData, apr_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Mayo"
+                    type="number"
+                    value={formData.may_target}
+                    onChange={(e) => setFormData({ ...formData, may_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Junio"
+                    type="number"
+                    value={formData.jun_target}
+                    onChange={(e) => setFormData({ ...formData, jun_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Julio"
+                    type="number"
+                    value={formData.jul_target}
+                    onChange={(e) => setFormData({ ...formData, jul_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Agosto"
+                    type="number"
+                    value={formData.aug_target}
+                    onChange={(e) => setFormData({ ...formData, aug_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Septiembre"
+                    type="number"
+                    value={formData.sep_target}
+                    onChange={(e) => setFormData({ ...formData, sep_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Octubre"
+                    type="number"
+                    value={formData.oct_target}
+                    onChange={(e) => setFormData({ ...formData, oct_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Noviembre"
+                    type="number"
+                    value={formData.nov_target}
+                    onChange={(e) => setFormData({ ...formData, nov_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <TextField
+                    label="Diciembre"
+                    type="number"
+                    value={formData.dec_target}
+                    onChange={(e) => setFormData({ ...formData, dec_target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+              </>
+            )}
 
             {dialogMode !== 'view' && (
               <Grid item xs={12}>

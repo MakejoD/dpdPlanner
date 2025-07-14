@@ -186,10 +186,10 @@ const ProgressTracking = () => {
       
       setStats({
         totalReports: allReports.length,
-        pendingReports: allReports.filter(r => r.status === 'pendiente').length,
-        approvedReports: allReports.filter(r => r.status === 'aprobado').length,
-        rejectedReports: allReports.filter(r => r.status === 'rechazado').length,
-        myPendingReports: allReports.filter(r => r.status === 'pendiente' && r.reportedBy.id === user.id).length
+        pendingReports: allReports.filter(r => r.status === 'SUBMITTED').length,
+        approvedReports: allReports.filter(r => r.status === 'APPROVED').length,
+        rejectedReports: allReports.filter(r => r.status === 'REJECTED').length,
+        myPendingReports: allReports.filter(r => r.status === 'SUBMITTED' && r.reportedBy.id === user.id).length
       });
     } catch (error) {
       console.error('Error cargando estadísticas:', error);
@@ -239,29 +239,51 @@ const ProgressTracking = () => {
       // Usar información de seguimiento si está disponible
       const trackingInfo = assignment.tracking || {};
       
-      // Determinar la meta trimestral correspondiente al período actual
-      const currentPeriod = generateCurrentPeriod('trimestral');
-      let quarterlyTarget = '';
-      switch (currentPeriod) {
-        case 'T1':
-          quarterlyTarget = primaryIndicator.q1Target || '';
-          break;
-        case 'T2':
-          quarterlyTarget = primaryIndicator.q2Target || '';
-          break;
-        case 'T3':
-          quarterlyTarget = primaryIndicator.q3Target || '';
-          break;
-        case 'T4':
-          quarterlyTarget = primaryIndicator.q4Target || '';
-          break;
+      // Determinar la periodicidad y meta correspondiente
+      const reportingFrequency = primaryIndicator.reportingFrequency || 'QUARTERLY';
+      const periodType = reportingFrequency === 'QUARTERLY' ? 'trimestral' : 'mensual';
+      const currentPeriod = generateCurrentPeriod(periodType);
+      
+      let targetValue = '';
+      if (periodType === 'trimestral') {
+        switch (currentPeriod) {
+          case 'T1':
+            targetValue = primaryIndicator.q1Target || '';
+            break;
+          case 'T2':
+            targetValue = primaryIndicator.q2Target || '';
+            break;
+          case 'T3':
+            targetValue = primaryIndicator.q3Target || '';
+            break;
+          case 'T4':
+            targetValue = primaryIndicator.q4Target || '';
+            break;
+        }
+      } else {
+        const monthMapping = {
+          'Enero': primaryIndicator.jan_target,
+          'Febrero': primaryIndicator.feb_target,
+          'Marzo': primaryIndicator.mar_target,
+          'Abril': primaryIndicator.apr_target,
+          'Mayo': primaryIndicator.may_target,
+          'Junio': primaryIndicator.jun_target,
+          'Julio': primaryIndicator.jul_target,
+          'Agosto': primaryIndicator.aug_target,
+          'Septiembre': primaryIndicator.sep_target,
+          'Octubre': primaryIndicator.oct_target,
+          'Noviembre': primaryIndicator.nov_target,
+          'Diciembre': primaryIndicator.dec_target
+        };
+        targetValue = monthMapping[currentPeriod] || '';
       }
       
       initialFormData = {
         ...initialFormData,
-        targetValue: trackingInfo.recommendedTargetValue || quarterlyTarget || primaryIndicator.annualTarget || '',
-        currentValue: trackingInfo.suggestedCurrentValue || primaryIndicator.currentValue || '',
-        period: trackingInfo.currentPeriod || initialFormData.period
+        periodType,
+        period: currentPeriod,
+        targetValue: trackingInfo.recommendedTargetValue || targetValue || primaryIndicator.annualTarget || '',
+        currentValue: trackingInfo.suggestedCurrentValue || primaryIndicator.currentValue || ''
       };
       
       // Auto-calcular porcentaje si tenemos valores
@@ -273,27 +295,63 @@ const ProgressTracking = () => {
         }
       }
       
-      console.log('✅ Datos pre-poblados:', initialFormData);
+      console.log('✅ Datos pre-poblados con indicador:', initialFormData);
+    } else if (type === 'activity' && (!assignment.indicators || assignment.indicators.length === 0)) {
+      // Actividad sin indicadores - usar periodicidad trimestral por defecto
+      console.log('⚠️ Actividad sin indicadores - usando valores por defecto');
+      const periodType = 'trimestral';
+      const currentPeriod = generateCurrentPeriod(periodType);
+      
+      initialFormData = {
+        ...initialFormData,
+        periodType,
+        period: currentPeriod
+      };
+      
+      console.log('✅ Datos por defecto para actividad sin indicadores:', initialFormData);
     } else if (type === 'indicator') {
       // Pre-popular con datos del indicador directo
-      const currentPeriod = generateCurrentPeriod('trimestral');
-      let quarterlyTarget = '';
-      switch (currentPeriod) {
-        case 'T1':
-          quarterlyTarget = assignment.q1Target || '';
-          break;
-        case 'T2':
-          quarterlyTarget = assignment.q2Target || '';
-          break;
-        case 'T3':
-          quarterlyTarget = assignment.q3Target || '';
-          break;
-        case 'T4':
-          quarterlyTarget = assignment.q4Target || '';
-          break;
+      const reportingFrequency = assignment.reportingFrequency || 'QUARTERLY';
+      const periodType = reportingFrequency === 'QUARTERLY' ? 'trimestral' : 'mensual';
+      const currentPeriod = generateCurrentPeriod(periodType);
+      
+      let targetValue = '';
+      if (periodType === 'trimestral') {
+        switch (currentPeriod) {
+          case 'T1':
+            targetValue = assignment.q1Target || '';
+            break;
+          case 'T2':
+            targetValue = assignment.q2Target || '';
+            break;
+          case 'T3':
+            targetValue = assignment.q3Target || '';
+            break;
+          case 'T4':
+            targetValue = assignment.q4Target || '';
+            break;
+        }
+      } else {
+        const monthMapping = {
+          'Enero': assignment.jan_target,
+          'Febrero': assignment.feb_target,
+          'Marzo': assignment.mar_target,
+          'Abril': assignment.apr_target,
+          'Mayo': assignment.may_target,
+          'Junio': assignment.jun_target,
+          'Julio': assignment.jul_target,
+          'Agosto': assignment.aug_target,
+          'Septiembre': assignment.sep_target,
+          'Octubre': assignment.oct_target,
+          'Noviembre': assignment.nov_target,
+          'Diciembre': assignment.dec_target
+        };
+        targetValue = monthMapping[currentPeriod] || '';
       }
       
-      initialFormData.targetValue = quarterlyTarget || assignment.annualTarget || '';
+      initialFormData.periodType = periodType;
+      initialFormData.period = currentPeriod;
+      initialFormData.targetValue = targetValue || assignment.annualTarget || '';
       initialFormData.currentValue = assignment.currentValue || '';
     }
 
@@ -322,22 +380,18 @@ const ProgressTracking = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Ignorar cambios en periodType ya que es determinado automáticamente por el indicador
+    if (name === 'periodType') {
+      return;
+    }
+    
     setFormData(prev => {
       const newData = { ...prev, [name]: value };
       
-      // Si cambia el tipo de período, actualizar el período actual
-      if (name === 'periodType') {
-        newData.period = generateCurrentPeriod(value);
-        
-        // Si cambia a trimestral y tenemos un assignment con indicadores, actualizar la meta
-        if (value === 'trimestral' && selectedAssignment) {
-          updateQuarterlyTarget(newData, generateCurrentPeriod(value));
-        }
-      }
-      
-      // Si cambia el período trimestral, actualizar la meta correspondiente
-      if (name === 'period' && prev.periodType === 'trimestral' && selectedAssignment) {
-        updateQuarterlyTarget(newData, value);
+      // Si cambia el período, actualizar la meta correspondiente
+      if (name === 'period' && selectedAssignment) {
+        updateTargetByPeriod(newData, value, prev.periodType);
       }
       
       // Auto-calcular porcentaje de ejecución
@@ -353,8 +407,8 @@ const ProgressTracking = () => {
     });
   };
 
-  // Función para actualizar la meta trimestral según el período seleccionado
-  const updateQuarterlyTarget = (formData, selectedPeriod) => {
+  // Función para actualizar la meta según la periodicidad y período seleccionado
+  const updateTargetByPeriod = (formData, selectedPeriod, periodType) => {
     if (!selectedAssignment) return;
 
     let indicator = null;
@@ -368,33 +422,53 @@ const ProgressTracking = () => {
 
     if (!indicator) return;
 
-    // Mapear el período seleccionado a la meta trimestral correspondiente
-    let quarterlyTarget = '';
-    switch (selectedPeriod) {
-      case 'T1':
-        quarterlyTarget = indicator.q1Target || '';
-        break;
-      case 'T2':
-        quarterlyTarget = indicator.q2Target || '';
-        break;
-      case 'T3':
-        quarterlyTarget = indicator.q3Target || '';
-        break;
-      case 'T4':
-        quarterlyTarget = indicator.q4Target || '';
-        break;
-      default:
-        quarterlyTarget = '';
+    let targetValue = '';
+
+    if (periodType === 'trimestral') {
+      // Mapear el período trimestral
+      switch (selectedPeriod) {
+        case 'T1':
+          targetValue = indicator.q1Target || '';
+          break;
+        case 'T2':
+          targetValue = indicator.q2Target || '';
+          break;
+        case 'T3':
+          targetValue = indicator.q3Target || '';
+          break;
+        case 'T4':
+          targetValue = indicator.q4Target || '';
+          break;
+        default:
+          targetValue = '';
+      }
+    } else if (periodType === 'mensual') {
+      // Mapear el período mensual
+      const monthMapping = {
+        'Enero': indicator.jan_target,
+        'Febrero': indicator.feb_target,
+        'Marzo': indicator.mar_target,
+        'Abril': indicator.apr_target,
+        'Mayo': indicator.may_target,
+        'Junio': indicator.jun_target,
+        'Julio': indicator.jul_target,
+        'Agosto': indicator.aug_target,
+        'Septiembre': indicator.sep_target,
+        'Octubre': indicator.oct_target,
+        'Noviembre': indicator.nov_target,
+        'Diciembre': indicator.dec_target
+      };
+      targetValue = monthMapping[selectedPeriod] || '';
     }
 
     // Actualizar la meta en el formulario
-    if (quarterlyTarget) {
-      formData.targetValue = quarterlyTarget.toString();
+    if (targetValue) {
+      formData.targetValue = targetValue.toString();
       
       // Recalcular el porcentaje si ya hay un valor actual
       if (formData.currentValue) {
         const current = parseFloat(formData.currentValue) || 0;
-        const target = parseFloat(quarterlyTarget) || 0;
+        const target = parseFloat(targetValue) || 0;
         if (target > 0) {
           formData.executionPercentage = ((current / target) * 100).toFixed(2);
         }
@@ -475,7 +549,23 @@ const ProgressTracking = () => {
 
   const handleSubmitReview = async () => {
     try {
-      await httpClient.put(`/progress-reports/${selectedReport.id}/review`, reviewData);
+      // Validación para rechazo
+      if (reviewData.action === 'rechazar' && reviewData.reviewComments.trim().length < 10) {
+        showAlert('La razón del rechazo debe tener al menos 10 caracteres', 'error');
+        return;
+      }
+
+      const endpoint = reviewData.action === 'aprobar' ? 'approve' : 'reject';
+      const payload = {};
+      
+      if (reviewData.action === 'aprobar') {
+        payload.comments = reviewData.reviewComments;
+      } else {
+        payload.rejectionReason = reviewData.reviewComments;
+        payload.comments = reviewData.reviewComments; // También como comentario adicional
+      }
+      
+      await httpClient.post(`/approvals/${selectedReport.id}/${endpoint}`, payload);
       
       showAlert(
         `Informe ${reviewData.action === 'aprobar' ? 'aprobado' : 'rechazado'} exitosamente`, 
@@ -503,11 +593,6 @@ const ProgressTracking = () => {
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         return monthNames[month - 1];
-      case 'semanal':
-        // Calcular semana del año (simplificado)
-        const startOfYear = new Date(year, 0, 1);
-        const weekNumber = Math.ceil((now - startOfYear) / (7 * 24 * 60 * 60 * 1000));
-        return `S${weekNumber.toString().padStart(2, '0')}`;
       default:
         return 'T1';
     }
@@ -539,16 +624,6 @@ const ProgressTracking = () => {
           { value: 'Noviembre', label: 'Noviembre' },
           { value: 'Diciembre', label: 'Diciembre' }
         ];
-      case 'semanal':
-        // Generar semanas del 1 al 52
-        const weeks = [];
-        for (let i = 1; i <= 52; i++) {
-          weeks.push({
-            value: `S${i.toString().padStart(2, '0')}`,
-            label: `Semana ${i}`
-          });
-        }
-        return weeks;
       default:
         return [];
     }
@@ -556,12 +631,14 @@ const ProgressTracking = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pendiente':
+      case 'SUBMITTED':
         return 'warning';
-      case 'aprobado':
+      case 'APPROVED':
         return 'success';
-      case 'rechazado':
+      case 'REJECTED':
         return 'error';
+      case 'DRAFT':
+        return 'default';
       default:
         return 'default';
     }
@@ -569,25 +646,42 @@ const ProgressTracking = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'pendiente':
+      case 'SUBMITTED':
         return <PendingIcon />;
-      case 'aprobado':
+      case 'APPROVED':
         return <ApproveIcon />;
-      case 'rechazado':
+      case 'REJECTED':
         return <RejectIcon />;
+      case 'DRAFT':
+        return <PendingIcon />;
       default:
         return <PendingIcon />;
     }
   };
 
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'SUBMITTED':
+        return 'Pendiente';
+      case 'APPROVED':
+        return 'Aprobado';
+      case 'REJECTED':
+        return 'Rechazado';
+      case 'DRAFT':
+        return 'Borrador';
+      default:
+        return status;
+    }
+  };
+
   const canReviewReport = (report) => {
     return hasPermission('approve', 'progress_report') && 
-           report.status === 'pendiente' &&
+           report.status === 'SUBMITTED' &&
            report.reportedBy.id !== user.id;
   };
 
   const canEditReport = (report) => {
-    return report.reportedBy.id === user.id && report.status === 'pendiente';
+    return report.reportedBy.id === user.id && report.status === 'SUBMITTED';
   };
 
   if (loading) {
@@ -1026,7 +1120,7 @@ const ProgressTracking = () => {
                       <TableCell align="center">
                         <Chip
                           icon={getStatusIcon(report.status)}
-                          label={report.status.charAt(0).toUpperCase() + report.status.slice(1)}
+                          label={getStatusLabel(report.status)}
                           color={getStatusColor(report.status)}
                           size="small"
                         />
@@ -1093,12 +1187,22 @@ const ProgressTracking = () => {
                     name="periodType"
                     value={formData.periodType}
                     label="Tipo de Período"
-                    onChange={handleInputChange}
+                    disabled={true}
+                    sx={{ 
+                      backgroundColor: '#f5f5f5',
+                      '& .MuiInputBase-input.Mui-disabled': {
+                        WebkitTextFillColor: '#666'
+                      }
+                    }}
                   >
                     <MenuItem value="trimestral">Trimestral</MenuItem>
                     <MenuItem value="mensual">Mensual</MenuItem>
-                    <MenuItem value="semanal">Semanal</MenuItem>
                   </Select>
+                  <Box sx={{ mt: 0.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      * Tipo determinado automáticamente por el indicador
+                    </Typography>
+                  </Box>
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={6}>
@@ -1257,7 +1361,7 @@ const ProgressTracking = () => {
                   <Typography variant="body2" color="textSecondary">Estado</Typography>
                   <Chip
                     icon={getStatusIcon(selectedReport.status)}
-                    label={selectedReport.status.charAt(0).toUpperCase() + selectedReport.status.slice(1)}
+                    label={getStatusLabel(selectedReport.status)}
                     color={getStatusColor(selectedReport.status)}
                     size="small"
                   />

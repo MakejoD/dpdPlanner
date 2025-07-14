@@ -39,6 +39,11 @@ model User {
   budgetResponsible     BudgetExecution[]    @relation("BudgetResponsible")
   budgetModified        BudgetExecution[]    @relation("BudgetModifiedBy")
   
+  // Procurement relations
+  procurementCreated    ProcurementProcess[] @relation("ProcurementCreatedBy")
+  procurementModified   ProcurementProcess[] @relation("ProcurementModifiedBy")
+  activityProcurementLinks ActivityProcurementLink[]
+  
   @@map("users")
 }
 
@@ -105,6 +110,7 @@ model Department {
   activityAssignments   ActivityAssignment[]
   indicatorAssignments  IndicatorAssignment[]
   budgetExecutions      BudgetExecution[]
+  procurementProcesses  ProcurementProcess[]
 
   @@map("departments")
 }
@@ -192,6 +198,7 @@ model Activity {
   assignments         ActivityAssignment[]
   budgetExecutions    BudgetExecution[]
   progressReports     ProgressReport[]
+  procurementLinks    ActivityProcurementLink[]
 
   @@unique([productId, code])
   @@map("activities")
@@ -207,10 +214,24 @@ model Indicator {
   measurementUnit   String
   baseline          Float?        @default(0)
   annualTarget      Float
+  reportingFrequency String       @default("QUARTERLY") // QUARTERLY or MONTHLY
   q1Target          Float?        @default(0)
   q2Target          Float?        @default(0)
   q3Target          Float?        @default(0)
   q4Target          Float?        @default(0)
+  // Monthly targets (only when reportingFrequency is MONTHLY)
+  jan_target        Float?        @default(0)
+  feb_target        Float?        @default(0)
+  mar_target        Float?        @default(0)
+  apr_target        Float?        @default(0)
+  may_target        Float?        @default(0)
+  jun_target        Float?        @default(0)
+  jul_target        Float?        @default(0)
+  aug_target        Float?        @default(0)
+  sep_target        Float?        @default(0)
+  oct_target        Float?        @default(0)
+  nov_target        Float?        @default(0)
+  dec_target        Float?        @default(0)
   isActive          Boolean       @default(true)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -410,6 +431,90 @@ model BudgetExecution {
   @@index([activityId])
   @@index([budgetCode])
   @@map("budget_executions")
+}
+
+// ========== PROCUREMENT ANNUAL PLAN (PAC) MODELS ==========
+
+model ProcurementProcess {
+  id          String   @id @default(uuid())
+  
+  // Campos alineados a la DGCP (Dirección General de Contrataciones Públicas)
+  cuciCode             String   // Código Único de Clasificación de Ítems
+  description          String   // Descripción del Bien/Servicio
+  measurementUnit      String   // Unidad de Medida (Unidad, Servicio, Global, Quintal)
+  quantity             Float    // Cantidad de unidades requeridas
+  unitCost             Decimal  // Costo Unitario Estimado (RD$)
+  totalCost            Decimal  // Costo Total Estimado (RD$) - calculado automáticamente
+  
+  // Modalidad de compra
+  procurementMethod    String   // Licitación Pública, Comparación de Precios, Compras Menores, Sorteo de Obras, etc.
+  
+  // Fuente de financiamiento
+  fundingSource        String   // Fondos Propios, Préstamo Externo, etc.
+  
+  // Cronograma de fechas
+  plannedStartDate     DateTime? // Fecha Prevista de Inicio del Proceso
+  plannedAwardDate     DateTime? // Fecha Prevista de Adjudicación
+  actualStartDate      DateTime? // Fecha Real de Inicio del Proceso
+  actualAwardDate      DateTime? // Fecha Real de Adjudicación
+  
+  // Estado del proceso
+  status               String   @default("PLANIFICADO") // PLANIFICADO, EN_PROCESO, ADJUDICADO, DESIERTO, CANCELADO
+  
+  // Información adicional
+  notes                String?  // Observaciones adicionales
+  contractNumber       String?  // Número de contrato (cuando sea adjudicado)
+  supplierName         String?  // Nombre del proveedor adjudicado
+  awardedAmount        Decimal? // Monto adjudicado final
+  
+  // Control de versiones y auditoria
+  fiscalYear          Int      // Año fiscal del PAC
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  // Usuario que creó/modificó
+  createdById         String
+  createdBy           User     @relation("ProcurementCreatedBy", fields: [createdById], references: [id])
+  lastModifiedById    String?
+  lastModifiedBy      User?    @relation("ProcurementModifiedBy", fields: [lastModifiedById], references: [id])
+  
+  // Departamento responsable
+  departmentId        String?
+  department          Department? @relation(fields: [departmentId], references: [id])
+  
+  // Relación con actividades del POA (muchos a muchos)
+  activityLinks       ActivityProcurementLink[]
+  
+  @@index([fiscalYear])
+  @@index([status])
+  @@index([cuciCode])
+  @@map("procurement_processes")
+}
+
+// Tabla pivote para la relación muchos a muchos entre Activity y ProcurementProcess
+model ActivityProcurementLink {
+  id                    String   @id @default(uuid())
+  
+  // Información de la vinculación
+  linkReason            String?  // Razón de la vinculación
+  isEssential           Boolean  @default(true) // Si la compra es esencial para la actividad
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Usuario que creó la vinculación
+  linkedById            String
+  linkedBy              User     @relation(fields: [linkedById], references: [id])
+  
+  // Relaciones
+  activityId            String
+  activity              Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  procurementProcessId  String
+  procurementProcess    ProcurementProcess @relation(fields: [procurementProcessId], references: [id], onDelete: Cascade)
+  
+  @@unique([activityId, procurementProcessId])
+  @@map("activity_procurement_links")
 }
 
 // ========== ENUMS replaced with strings for SQLite compatibility ==========

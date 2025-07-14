@@ -138,7 +138,8 @@ router.get('/', auth, async (req, res) => {
     ]);
 
     res.json({
-      reports,
+      success: true,
+      data: reports,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(totalCount / parseInt(limit)),

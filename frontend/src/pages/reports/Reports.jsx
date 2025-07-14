@@ -205,7 +205,7 @@ const Reports = () => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Assessment color="primary" />
+        <Description color="primary" />
         Generación de Documentos POA
       </Typography>
 

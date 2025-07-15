@@ -74,6 +74,51 @@ npm run db:push
 npm run db:migrate
 ```
 
+## 🚀 Scripts del Sistema
+
+### Configuración Inicial
+```bash
+npm run setup-complete    # Instalación completa automática
+npm run system:init       # Solo inicializar datos del sistema
+npm run system:reset      # Resetear y reinstalar
+```
+
+### Utilidades del Sistema
+```bash
+npm run system:status     # Verificar estado del sistema
+npm run system:test       # Probar todos los endpoints
+npm run permissions:add   # Agregar permisos faltantes
+```
+
+## 📁 Estructura Organizada
+
+```
+backend/
+├── src/                    # Código fuente principal
+│   ├── routes/            # 20 endpoints organizados ✅
+│   ├── middleware/        # Middlewares de seguridad ✅
+│   ├── utils/            # Utilidades comunes ✅
+│   └── server.js         # Servidor principal ✅
+├── scripts/              # Scripts organizados (11 archivos)
+│   ├── setup.js          # Configuración completa
+│   ├── test.js           # Verificación de endpoints
+│   ├── system-status-check.js
+│   └── [otros scripts útiles]
+├── prisma/               # Configuración de base de datos ✅
+└── package.json          # Scripts actualizados ✅
+```
+
+## ✅ Limpieza Realizada
+
+**Se eliminaron 60+ archivos innecesarios:**
+- 40+ archivos `test-*.js` duplicados
+- 6+ archivos `setup-*.js` redundantes  
+- 14+ archivos `create-*.js` obsoletos
+- Scripts de debug temporales
+- Archivos de verificación ad-hoc
+
+**Resultado**: Sistema limpio, organizado y mantenible.
+
 ## 📊 Endpoints Principales
 
 ```

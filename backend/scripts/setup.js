@@ -310,7 +310,6 @@ async function createCompleteData() {
               code: 'OBJ001',
               name: 'Modernizar los procesos administrativos institucionales',
               description: 'Implementar tecnologías modernas y procedimientos eficientes para optimizar la gestión',
-              year: 2025,
               strategicAxisId: strategicAxis.id,
               isActive: true
             }
@@ -336,7 +335,7 @@ async function createCompleteData() {
               code: 'PROD001',
               name: 'Sistema POA-PACC implementado y operativo',
               description: 'Plataforma digital integrada para gestión de POA y PACC funcionando completamente',
-              year: 2025,
+              type: 'PRODUCT',
               objectiveId: objective.id,
               isActive: true
             }
@@ -401,11 +400,10 @@ async function createCompleteData() {
             data: {
               name: 'Porcentaje de implementación del sistema POA-PACC',
               description: 'Mide el avance en la implementación completa del sistema integrado de gestión',
-              type: 'eficiencia',
+              type: 'RESULT',
               measurementUnit: 'porcentaje',
               baseline: 0,
               annualTarget: 100,
-              year: 2025,
               strategicAxisId: strategicAxis.id,
               isActive: true
             }
@@ -435,14 +433,14 @@ async function createCompleteData() {
       if (!existingBudget) {
         await prisma.budgetExecution.create({
           data: {
-            activityId: activities[0].id,
-            fiscalYear: 2025,
+            amount: 37500.00,
+            description: 'Ejecución presupuestaria primer trimestre 2025 - Desarrollo sistema POA-PACC',
+            executionType: 'DEVENGADO',
+            month: 'MARZO',
             quarter: 'Q1',
-            budgetedAmount: 150000.00,
-            executedAmount: 37500.00,
-            percentageExecuted: 25.0,
-            status: 'EN_PROCESO',
-            description: 'Ejecución presupuestaria primer trimestre 2025 - Desarrollo sistema POA-PACC'
+            fiscalYear: 2025,
+            assignedAmount: 150000.00,
+            executionPercent: 25.0
           }
         });
         results.budgetExecutions++;
@@ -461,16 +459,16 @@ async function createCompleteData() {
         await prisma.progressReport.create({
           data: {
             activityId: activities[0].id,
-            reportingPeriod: '2025-01',
-            periodType: 'MENSUAL',
-            physicalProgress: 25.5,
-            budgetProgress: 22.8,
-            status: 'EN_PROGRESO',
-            achievements: 'Configuración base del sistema completada exitosamente. Módulos principales inicializados.',
+            periodType: 'mensual',
+            period: '2025-01',
+            currentValue: 25.5,
+            targetValue: 100.0,
+            executionPercentage: 25.5,
+            qualitativeComments: 'Configuración base del sistema completada exitosamente. Módulos principales inicializados.',
             challenges: 'Coordinación entre equipos técnicos para definir requisitos específicos detallados.',
             nextSteps: 'Completar desarrollo del módulo de planificación e iniciar pruebas de integración.',
-            reportedBy: reportingUser.id,
-            reportDate: new Date()
+            reportedById: reportingUser.id,
+            status: 'pendiente'
           }
         });
         results.progressReports++;
@@ -535,41 +533,53 @@ async function createCompleteData() {
     // Procesos de contratación
     const procurementProcesses = [
       {
-        processCode: 'PROC-2025-001',
-        processName: 'Adquisición de equipos informáticos para modernización institucional',
-        category: 'BIENES',
-        priority: 'ALTA',
-        estimatedValue: 85000.00,
-        status: 'EN_PROCESO',
+        description: 'Adquisición de equipos informáticos para modernización institucional',
+        procurementType: 'BIENES',
+        procurementMethod: 'LICITACION_PUBLICA',
+        estimatedAmount: 85000.00,
+        currency: 'DOP',
         plannedStartDate: new Date('2025-02-01'),
-        expectedEndDate: new Date('2025-04-30'),
-        description: 'Compra de servidores, equipos de cómputo y infraestructura tecnológica para modernización del sistema informático institucional'
+        plannedEndDate: new Date('2025-04-30'),
+        quarter: 'Q1',
+        status: 'EN_PROCESO',
+        priority: 'ALTA',
+        isRecurrent: false,
+        legalFramework: 'LEY_340_06',
+        observations: 'Compra de servidores, equipos de cómputo y infraestructura tecnológica'
       },
       {
-        processCode: 'PROC-2025-002',
-        processName: 'Contratación de servicios de capacitación especializada',
-        category: 'SERVICIOS',
-        priority: 'MEDIA',
-        estimatedValue: 45000.00,
-        status: 'PROGRAMADO',
+        description: 'Contratación de servicios de capacitación especializada',
+        procurementType: 'SERVICIOS',
+        procurementMethod: 'COMPARACION_PRECIOS',
+        estimatedAmount: 45000.00,
+        currency: 'DOP',
         plannedStartDate: new Date('2025-03-15'),
-        expectedEndDate: new Date('2025-06-15'),
-        description: 'Capacitación del personal en uso de nuevas tecnologías, sistemas integrados y metodologías de gestión moderna'
+        plannedEndDate: new Date('2025-06-15'),
+        quarter: 'Q2',
+        status: 'PLANIFICADO',
+        priority: 'MEDIA',
+        isRecurrent: false,
+        legalFramework: 'LEY_340_06',
+        observations: 'Capacitación del personal en uso de nuevas tecnologías'
       }
     ];
 
     for (const procData of procurementProcesses) {
       try {
-        const existingProc = await prisma.procurementProcess.findFirst({ where: { processCode: procData.processCode } });
+        const existingProc = await prisma.procurementProcess.findFirst({ 
+          where: { 
+            description: procData.description 
+          } 
+        });
         if (!existingProc) {
           await prisma.procurementProcess.create({ data: procData });
           results.procurementProcesses++;
-          console.log(`   ✅ Proceso: ${procData.processCode} - ${procData.processName}`);
+          console.log(`   ✅ Proceso: ${procData.description.substring(0, 50)}...`);
         } else {
-          console.log(`   ⏭️  Proceso ${procData.processCode} ya existe`);
+          console.log(`   ⏭️  Proceso ya existe`);
         }
       } catch (error) {
-        console.log(`   ❌ Error creando proceso ${procData.processCode}: ${error.message}`);
+        console.log(`   ❌ Error creando proceso: ${error.message}`);
       }
     }
   }

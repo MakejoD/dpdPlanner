@@ -22,7 +22,7 @@ async function addMissingPermissions() {
     
     // Get admin role
     const adminRole = await prisma.role.findFirst({
-      where: { name: 'Administrador' }
+      where: { name: 'Administrador del Sistema' }
     });
     
     if (!adminRole) {

@@ -1661,6 +1661,80 @@ router.delete('/procurement-links/:id',
   }
 );
 
+/**
+ * @route   GET /api/activities/recent
+ * @desc    Obtener actividades recientes para el dashboard
+ * @access  Private
+ */
+router.get('/recent',
+  authenticateToken,
+  authorize('read', 'activity'),
+  [
+    query('limit').optional().isInt({ min: 1, max: 20 }).withMessage('limit debe estar entre 1 y 20')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 10;
+      const user = req.user;
+
+      // Construir filtros según el rol del usuario
+      // let whereClause = {};
+
+      // Si es técnico de seguimiento, solo sus actividades asignadas
+      // if (user.role?.name === 'Técnico de Seguimiento') {
+      //   whereClause = {
+      //     assignments: {
+      //       some: {
+      //         userId: user.id
+      //       }
+      //     }
+      //   };
+      // }
+      // Si es director de área, actividades de su departamento
+      // else if (user.role?.name === 'Director de Área' && user.departmentId) {
+      //   whereClause = {
+      //     product: {
+      //       objective: {
+      //         strategicAxis: {
+      //           departmentId: user.departmentId
+      //         }
+      //       }
+      //     }
+      //   };
+      // }
+
+      const recentActivities = await prisma.activity.findMany({
+        include: {
+          product: {
+            select: {
+              name: true
+            }
+          }
+        },
+        orderBy: {
+          updatedAt: 'desc'
+        },
+        take: limit
+      });
+
+      res.json({
+        success: true,
+        data: recentActivities,
+        message: 'Actividades recientes obtenidas exitosamente'
+      });
+
+    } catch (error) {
+      logger.error('Error al obtener actividades recientes:', error);
+      res.status(500).json({
+        success: false,
+        data: null,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+);
+
 module.exports = router;
 
 

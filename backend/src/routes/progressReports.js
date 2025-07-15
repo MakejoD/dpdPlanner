@@ -975,4 +975,91 @@ router.post('/:id/withdraw',
   }
 );
 
+/**
+ * @route   GET /api/progress-reports/recent
+ * @desc    Obtener reportes de progreso recientes
+ * @access  Private
+ */
+router.get('/recent',
+  auth,
+  async (req, res) => {
+    try {
+      const user = req.user;
+      const limit = parseInt(req.query.limit) || 10;
+
+      // Filtro base
+      let whereClause = {};
+
+      // Si no es admin, solo ver sus propios reportes o los de su departamento
+      if (!user.role?.name?.includes('Administrador') && !user.role?.name?.includes('Director General')) {
+        if (user.role?.name === 'Técnico de Seguimiento') {
+          whereClause.reportedById = user.id;
+        } else if (user.role?.name === 'Director de Área' && user.departmentId) {
+          whereClause = {
+            OR: [
+              { reportedById: user.id },
+              {
+                activity: {
+                  product: {
+                    objective: {
+                      strategicAxis: {
+                        departmentId: user.departmentId
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          };
+        }
+      }
+
+      const recentReports = await prisma.progressReport.findMany({
+        where: whereClause,
+        include: {
+          reportedBy: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          },
+          activity: {
+            select: {
+              name: true,
+              product: {
+                select: {
+                  name: true
+                }
+              }
+            }
+          },
+          indicator: {
+            select: {
+              name: true
+            }
+          }
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: limit
+      });
+
+      res.json({
+        success: true,
+        data: recentReports,
+        message: 'Reportes recientes obtenidos exitosamente'
+      });
+
+    } catch (error) {
+      console.error('Error al obtener reportes recientes:', error);
+      res.status(500).json({
+        success: false,
+        data: null,
+        message: 'Error interno del servidor'
+      });
+    }
+  }
+);
+
 module.exports = router;

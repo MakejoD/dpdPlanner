@@ -23,6 +23,7 @@ const budgetRoutes = require('./routes/budget');
 const correlationRoutes = require('./routes/correlation');
 const activityProcurementLinksRoutes = require('./routes/activityProcurementLinks');
 const paccRoutes = require('./routes/pacc');
+const dashboardRoutes = require('./routes/dashboard');
 
 const errorHandler = require('./middleware/errorHandler');
 const logger = require('./utils/logger');
@@ -90,6 +91,7 @@ app.use('/api/budget', budgetRoutes);
 app.use('/api/correlation', correlationRoutes);
 app.use('/api/activity-procurement-links', activityProcurementLinksRoutes);
 app.use('/api/pacc', paccRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

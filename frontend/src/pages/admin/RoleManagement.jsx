@@ -91,13 +91,16 @@ const RoleManagement = () => {
       console.log('Respuesta de roles:', rolesResponse);
       console.log('Respuesta de permisos:', permissionsResponse);
       
-      // Usar la nueva estructura de respuesta de las APIs
-      setRoles(rolesResponse?.data?.data || []);
-      setPermissions(permissionsResponse?.data?.data || []);
+      // Usar la estructura correcta de respuesta de las APIs
+      setRoles(rolesResponse?.data || []);
+      setPermissions(permissionsResponse?.data || []);
       setError('');
       
       if (!rolesResponse?.success) {
         showAlert(rolesResponse?.message || 'Error al cargar roles', 'error');
+      }
+      if (!permissionsResponse?.success) {
+        showAlert(permissionsResponse?.message || 'Error al cargar permisos', 'error');
       }
     } catch (error) {
       console.error('Error cargando datos:', error);

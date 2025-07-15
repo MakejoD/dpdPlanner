@@ -54,6 +54,8 @@ const ApprovalManagement = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   useEffect(() => {
+    console.log('🎯 ApprovalManagement montado, cargando datos...');
+    console.log('📋 Tab activo:', activeTab);
     loadData();
   }, [activeTab]);
 
@@ -74,28 +76,52 @@ const ApprovalManagement = () => {
 
   const loadPendingReports = async () => {
     try {
+      console.log('🔄 Cargando reportes pendientes...');
       const response = await httpClient.get('/approvals/pending');
-      setPendingReports(response.data?.data?.reports || []);
+      console.log('📥 Respuesta de /approvals/pending:', response);
+      console.log('📊 Data completa:', response.data);
+      console.log('📋 Reportes:', response.data?.data?.reports);
+      console.log('📋 Data directa:', response.data);
+      
+      // Intentar ambas estructuras
+      const reports = response.data?.data?.reports || response.data?.reports || response.data || [];
+      console.log('✅ Reportes finales:', reports);
+      setPendingReports(reports);
     } catch (error) {
-      console.error('Error loading pending reports:', error);
+      console.error('❌ Error loading pending reports:', error);
     }
   };
 
   const loadMyReports = async () => {
     try {
+      console.log('🔄 Cargando mis reportes...');
       const response = await httpClient.get('/approvals/my-reports');
-      setMyReports(response.data?.data || []);
+      console.log('📥 Respuesta de /approvals/my-reports:', response);
+      console.log('📊 Data completa:', response.data);
+      
+      // Intentar ambas estructuras
+      const reports = response.data?.data || response.data || [];
+      console.log('✅ Mis reportes finales:', reports);
+      setMyReports(reports);
     } catch (error) {
-      console.error('Error loading my reports:', error);
+      console.error('❌ Error loading my reports:', error);
     }
   };
 
   const loadStats = async () => {
     try {
+      console.log('🔄 Cargando estadísticas...');
       const response = await httpClient.get('/approvals/stats');
-      setStats(response.data?.data?.summary || {});
+      console.log('📥 Respuesta de /approvals/stats:', response);
+      console.log('📊 Data completa:', response.data);
+      console.log('📈 Stats:', response.data?.data?.summary);
+      
+      // Intentar ambas estructuras
+      const stats = response.data?.data?.summary || response.data?.summary || response.data || {};
+      console.log('✅ Stats finales:', stats);
+      setStats(stats);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('❌ Error loading stats:', error);
     }
   };
 
@@ -254,7 +280,13 @@ const ApprovalManagement = () => {
     </Grid>
   );
 
-  const PendingReportsTable = () => (
+  const PendingReportsTable = () => {
+    console.log('🏗️ Renderizando PendingReportsTable');
+    console.log('📊 pendingReports:', pendingReports);
+    console.log('📏 pendingReports length:', pendingReports?.length);
+    console.log('🔍 Es array?:', Array.isArray(pendingReports));
+    
+    return (
     <TableContainer component={Paper}>
       <Table>
         <TableHead>
@@ -339,7 +371,8 @@ const ApprovalManagement = () => {
         </TableBody>
       </Table>
     </TableContainer>
-  );
+    );
+  };
 
   const MyReportsTable = () => (
     <TableContainer component={Paper}>

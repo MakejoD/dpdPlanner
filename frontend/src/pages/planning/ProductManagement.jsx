@@ -40,7 +40,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   Inventory as ProductIcon
 } from '@mui/icons-material';
-import { httpClient } from '../../utils/api';
+import httpClient from '../../utils/api';
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
@@ -74,14 +74,16 @@ const ProductManagement = () => {
 
       // Cargar objetivos
       const objectivesResponse = await httpClient.get('/objectives');
-      if (objectivesResponse.data.success) {
-        setObjectives(objectivesResponse.data.data);
+      console.log('Respuesta de objetivos:', objectivesResponse);
+      if (objectivesResponse.success) {
+        setObjectives(objectivesResponse.data);
       }
 
       // Cargar productos
       const productsResponse = await httpClient.get('/products');
-      if (productsResponse.data.success) {
-        setProducts(productsResponse.data.data);
+      console.log('Respuesta de productos:', productsResponse);
+      if (productsResponse.success) {
+        setProducts(productsResponse.data);
       }
 
       setError('');
@@ -140,7 +142,7 @@ const ProductManagement = () => {
         response = await httpClient.post('/products', formData);
       }
 
-      if (response.data.success) {
+      if (response.success) {
         const action = editingProduct ? 'actualizado' : 'creado';
         setSnackbar({ 
           open: true, 
@@ -150,7 +152,7 @@ const ProductManagement = () => {
         handleCloseDialog();
         loadData();
       } else {
-        throw new Error(response.data.message || 'Error al guardar el producto');
+        throw new Error(response.message || 'Error al guardar el producto');
       }
     } catch (err) {
       setError('Error al guardar: ' + err.message);
@@ -166,7 +168,7 @@ const ProductManagement = () => {
     try {
       const response = await httpClient.delete(`/products/${id}`);
       
-      if (response.data.success) {
+      if (response.success) {
         setSnackbar({ 
           open: true, 
           message: 'Producto eliminado exitosamente', 
@@ -174,7 +176,7 @@ const ProductManagement = () => {
         });
         loadData();
       } else {
-        throw new Error(response.data.message || 'Error al eliminar el producto');
+        throw new Error(response.message || 'Error al eliminar el producto');
       }
     } catch (err) {
       setError('Error al eliminar: ' + err.message);

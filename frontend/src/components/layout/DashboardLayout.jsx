@@ -153,6 +153,12 @@ const DashboardLayout = ({ children }) => {
           permission: 'read:progress_report'
         },
         {
+          title: 'Aprobaciones',
+          icon: <CheckCircleIcon />,
+          path: '/tracking/approvals',
+          permission: 'approve:progress_report'
+        },
+        {
           title: 'Indicadores',
           icon: <BarChartIcon />,
           path: '/tracking/indicators',

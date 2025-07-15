@@ -87,13 +87,24 @@ const UserManagement = () => {
       console.log('Respuesta de roles:', rolesResponse);
       console.log('Respuesta de departamentos:', departmentsResponse);
       
-      // Usar la nueva estructura de respuesta de las APIs con el fix del httpClient
-      setUsers(usersResponse?.data?.data || []);
-      setRoles(rolesResponse?.data?.data || []);
-      setDepartments(departmentsResponse?.data?.data || []);
+      // Usar la estructura correcta de respuesta de las APIs
+      setUsers(usersResponse?.data || []);
+      setRoles(rolesResponse?.data || []);
+      setDepartments(departmentsResponse?.data || []);
       
-      if (!usersResponse?.data?.success) {
-        showAlert(usersResponse?.data?.message || 'Error al cargar usuarios', 'error');
+      // Debug logging para departamentos
+      console.log('Departamentos cargados:', departmentsResponse?.data);
+      console.log('Primer usuario departmentId:', usersResponse?.data?.[0]?.departmentId);
+      console.log('Primer usuario department:', usersResponse?.data?.[0]?.department);
+      
+      if (!usersResponse?.success) {
+        showAlert(usersResponse?.message || 'Error al cargar usuarios', 'error');
+      }
+      if (!rolesResponse?.success) {
+        showAlert(rolesResponse?.message || 'Error al cargar roles', 'error');
+      }
+      if (!departmentsResponse?.success) {
+        showAlert(departmentsResponse?.message || 'Error al cargar departamentos', 'error');
       }
     } catch (error) {
       console.error('Error cargando datos:', error);

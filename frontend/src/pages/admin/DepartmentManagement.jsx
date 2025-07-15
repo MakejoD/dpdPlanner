@@ -66,7 +66,7 @@ const DepartmentManagement = () => {
       console.log('Cargando departamentos...');
       const response = await httpClient.get('/departments');
       console.log('Respuesta de departamentos:', response);
-      setDepartments(response?.data?.data || []);
+      setDepartments(response?.data || []);
     } catch (error) {
       console.error('Error cargando departamentos:', error);
       setDepartments([]); // Asegurar que siempre sea un array

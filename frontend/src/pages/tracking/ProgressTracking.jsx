@@ -116,6 +116,9 @@ const ProgressTracking = () => {
   });
 
   useEffect(() => {
+    console.log('🔄 ProgressTracking: Componente montado, cargando datos...');
+    console.log('👤 Usuario actual:', user);
+    console.log('📑 Tab actual:', tabValue);
     loadData();
   }, [tabValue]);
 
@@ -137,10 +140,19 @@ const ProgressTracking = () => {
 
   const loadReports = async () => {
     try {
+      console.log('🔄 Cargando informes de progreso...');
+      console.log('🔑 Token en localStorage:', localStorage.getItem('token') ? 'Presente' : 'Ausente');
+      
       const response = await httpClient.get('/progress-reports');
-      setReports(response.data.data || []);
+      console.log('✅ Respuesta de informes recibida:', response);
+      
+      // La respuesta ya incluye la paginación, los datos están en response.data directamente
+      const reportsData = response.data || [];
+      console.log('📊 Cantidad de informes:', reportsData.length);
+      
+      setReports(reportsData);
     } catch (error) {
-      console.error('Error cargando informes:', error);
+      console.error('❌ Error cargando informes:', error);
       setReports([]);
     }
   };
@@ -153,8 +165,8 @@ const ProgressTracking = () => {
       const response = await httpClient.get('/activities/list-for-tracking');
       console.log('✅ Respuesta del endpoint list-for-tracking:', response);
       
-      // Con el fix del httpClient, los datos están en response.data.data
-      const activitiesData = response.data.data || [];
+      // Los datos están en response.data directamente
+      const activitiesData = response.data || [];
       console.log('📊 Actividades cargadas:', activitiesData.length);
       
       // También obtener indicadores directos asignados
@@ -162,7 +174,7 @@ const ProgressTracking = () => {
         const indicatorsResponse = await httpClient.get('/progress-reports/my-assignments');
         setAssignments({
           activities: activitiesData,
-          directIndicators: indicatorsResponse.data.data?.directIndicators || []
+          directIndicators: indicatorsResponse.data?.directIndicators || []
         });
         console.log('✅ Asignaciones cargadas exitosamente');
       } catch (indicatorError) {
@@ -181,8 +193,12 @@ const ProgressTracking = () => {
 
   const loadStats = async () => {
     try {
+      console.log('📈 Cargando estadísticas...');
       const response = await httpClient.get('/progress-reports');
-      const allReports = response.data.data || [];
+      
+      // Los datos están en response.data directamente
+      const allReports = response.data || [];
+      console.log('📊 Informes para estadísticas:', allReports.length);
       
       setStats({
         totalReports: allReports.length,
@@ -192,7 +208,7 @@ const ProgressTracking = () => {
         myPendingReports: allReports.filter(r => r.status === 'SUBMITTED' && r.reportedBy.id === user.id).length
       });
     } catch (error) {
-      console.error('Error cargando estadísticas:', error);
+      console.error('❌ Error cargando estadísticas:', error);
       setStats({ totalReports: 0, pendingReports: 0, approvedReports: 0, rejectedReports: 0, myPendingReports: 0 });
     }
   };
@@ -685,12 +701,17 @@ const ProgressTracking = () => {
   };
 
   if (loading) {
+    console.log('🔄 ProgressTracking: Mostrando pantalla de carga...');
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <CircularProgress />
       </Box>
     );
   }
+
+  console.log('🎯 ProgressTracking: Renderizando componente principal...');
+  console.log('📊 Reports state:', reports.length, 'informes');
+  console.log('📋 Stats state:', stats);
 
   return (
     <Box sx={{ p: 3 }}>
@@ -1067,8 +1088,15 @@ const ProgressTracking = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  reports.map((report) => (
-                    <TableRow key={report.id} hover>
+                  reports.map((report) => {
+                    // Log para debugging
+                    if (reports.length > 0 && report === reports[0]) {
+                      console.log('🔍 Renderizando informes:', reports.length, 'elementos');
+                      console.log('📋 Primer informe:', report);
+                    }
+                    
+                    return (
+                      <TableRow key={report.id} hover>
                       <TableCell>
                         <Box>
                           <Typography variant="body2" fontWeight="medium">
@@ -1164,7 +1192,8 @@ const ProgressTracking = () => {
                         </Box>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

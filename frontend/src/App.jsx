@@ -20,6 +20,7 @@ import ActivityManagement from './pages/planning/ActivityManagement'
 import IndicatorManagement from './pages/planning/IndicatorManagement'
 import TestUserSelect from './pages/planning/TestUserSelect'
 import ProgressTracking from './pages/tracking/ProgressTracking'
+import ApprovalManagement from './pages/tracking/ApprovalManagement'
 import BudgetExecution from './pages/budget/BudgetExecution'
 import PACCScheduleManagement from './pages/pacc/PACCScheduleManagement'
 import PACCDashboard from './pages/pacc/PACCDashboard'
@@ -190,6 +191,14 @@ function App() {
                     element={
                       <ProtectedRoute requiredPermission="read:indicator">
                         <IndicatorManagement />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/tracking/approvals" 
+                    element={
+                      <ProtectedRoute requiredPermission="approve:progress_report">
+                        <ApprovalManagement />
                       </ProtectedRoute>
                     } 
                   />

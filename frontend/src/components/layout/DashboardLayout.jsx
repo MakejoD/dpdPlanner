@@ -40,17 +40,12 @@ import {
   Timeline as TimelineIcon,
   BarChart as BarChartIcon,
   ShoppingCart as ShoppingCartIcon,
-  Flag as FlagIcon,
-  Task as TaskIcon,
-  Analytics as AnalyticsIcon,
-  Link as LinkIcon,
-  Description as DescriptionIcon,
-  ListAlt as ListAltIcon,
-  Speed as SpeedIcon,
-  Inventory as InventoryIcon
+  Schedule as ScheduleIcon,
+  CheckCircle as CheckCircleIcon
 } from '@mui/icons-material'
 
 import { useAuth } from '../../contexts/AuthContext'
+import ConnectionStatus from '../common/ConnectionStatus'
 
 const drawerWidth = 280
 
@@ -67,7 +62,7 @@ const DashboardLayout = ({ children }) => {
     admin: false,
     planning: false,
     tracking: false,
-    procurement: false
+    pacc: false
   })
 
   // Configuración del menú de navegación
@@ -114,7 +109,7 @@ const DashboardLayout = ({ children }) => {
       children: [
         {
           title: 'Ejes Estratégicos',
-          icon: <FlagIcon />,
+          icon: <TimelineIcon />,
           path: '/planning/strategic-axes',
           permission: 'read:strategic_axis'
         },
@@ -126,27 +121,21 @@ const DashboardLayout = ({ children }) => {
         },
         {
           title: 'Productos/Servicios',
-          icon: <InventoryIcon />,
+          icon: <BarChartIcon />,
           path: '/planning/products',
           permission: 'read:product'
         },
         {
           title: 'Actividades',
-          icon: <TaskIcon />,
+          icon: <AssignmentIcon />,
           path: '/planning/activities',
           permission: 'read:activity'
         },
         {
           title: 'Indicadores',
-          icon: <SpeedIcon />,
+          icon: <TrendingUpIcon />,
           path: '/planning/indicators',
           permission: 'read:indicator'
-        },
-        {
-          title: 'Generar POA',
-          icon: <DescriptionIcon />,
-          path: '/reports',
-          permission: 'read:dashboard'
         }
       ]
     },
@@ -159,56 +148,50 @@ const DashboardLayout = ({ children }) => {
       children: [
         {
           title: 'Informes de Avances',
-          icon: <ListAltIcon />,
+          icon: <AssignmentIcon />,
           path: '/tracking/progress',
           permission: 'read:progress_report'
         },
         {
-          title: 'Aprobaciones',
-          icon: <SecurityIcon />,
-          path: '/approvals',
-          permission: 'approve:progress-report'
-        },
-        {
           title: 'Indicadores',
-          icon: <SpeedIcon />,
+          icon: <BarChartIcon />,
           path: '/tracking/indicators',
           permission: 'read:indicator'
         }
       ]
     },
     {
-      title: 'Plan Anual de Compras',
+      title: 'PACC',
       icon: <ShoppingCartIcon />,
       expandable: true,
-      key: 'procurement',
-      permission: 'read:procurement_process',
+      key: 'pacc',
+      permission: 'read:procurement',
       children: [
         {
-          title: 'Procesos de Compra',
-          icon: <ShoppingCartIcon />,
-          path: '/procurement/processes',
-          permission: 'read:procurement_process'
+          title: 'Dashboard PACC',
+          icon: <DashboardIcon />,
+          path: '/pacc/dashboard',
+          permission: 'read:dashboard'
         },
         {
-          title: 'Vinculación POA-PAC',
-          icon: <LinkIcon />,
-          path: '/procurement/poa-linking',
-          permission: 'read:activity_procurement_link'
-        },
-        {
-          title: 'Reportes PAC',
-          icon: <BarChartIcon />,
-          path: '/procurement/reports',
-          permission: 'read:procurement_process'
+          title: 'Cronogramas',
+          icon: <ScheduleIcon />,
+          path: '/pacc/schedules',
+          permission: 'read:procurement'
         }
       ]
     },
     {
-      title: 'Ejecución Presupuestaria',
+      title: 'Presupuesto',
       icon: <MoneyIcon />,
-      path: '/budget/execution',
+      path: '/budget',
       permission: 'read:budget'
+    },
+    {
+      title: 'Reportes',
+      icon: <ReportsIcon />,
+      path: '/reports',
+      permission: 'read:dashboard'
     }
   ]
 
@@ -552,6 +535,7 @@ const DashboardLayout = ({ children }) => {
       >
         <Toolbar /> {/* Spacer for AppBar */}
         <Box sx={{ p: 3 }}>
+          <ConnectionStatus />
           {children}
         </Box>
       </Box>

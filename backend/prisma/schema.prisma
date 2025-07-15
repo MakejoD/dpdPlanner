@@ -33,16 +33,15 @@ model User {
   indicatorAssignments  IndicatorAssignment[]
   progressReports       ProgressReport[]
   approvedReports       ProgressReport[]     @relation("ApprovedBy")
-  approvalHistory       ReportApprovalHistory[] @relation("ApprovalHistoryBy")
   
-  // Budget execution relations
-  budgetResponsible     BudgetExecution[]    @relation("BudgetResponsible")
-  budgetModified        BudgetExecution[]    @relation("BudgetModifiedBy")
-  
-  // Procurement relations
-  procurementCreated    ProcurementProcess[] @relation("ProcurementCreatedBy")
-  procurementModified   ProcurementProcess[] @relation("ProcurementModifiedBy")
-  activityProcurementLinks ActivityProcurementLink[]
+  // PACC relations
+  paccSchedules         PaccSchedule[]
+  paccCompliancesEvaluated PaccCompliance[] @relation("EvaluatedBy")
+  paccCompliancesApproved  PaccCompliance[] @relation("ApprovedBy")
+  paccAlertsAssigned    PaccAlert[]          @relation("AssignedTo")
+  paccAlertsEscalated   PaccAlert[]          @relation("EscalatedTo")
+  paccReportsGenerated  PaccReport[]         @relation("GeneratedBy")
+  paccReportsApproved   PaccReport[]         @relation("ApprovedBy")
   
   @@map("users")
 }
@@ -109,8 +108,6 @@ model Department {
   strategicAxes         StrategicAxis[]
   activityAssignments   ActivityAssignment[]
   indicatorAssignments  IndicatorAssignment[]
-  budgetExecutions      BudgetExecution[]
-  procurementProcesses  ProcurementProcess[]
 
   @@map("departments")
 }
@@ -192,13 +189,18 @@ model Activity {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  productId           String
-  product             Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
-  indicators          Indicator[]
-  assignments         ActivityAssignment[]
-  budgetExecutions    BudgetExecution[]
-  progressReports     ProgressReport[]
-  procurementLinks    ActivityProcurementLink[]
+  productId               String
+  product                 Product                     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  indicators              Indicator[]
+  assignments             ActivityAssignment[]
+  progressReports         ProgressReport[]
+  budgetExecutions        BudgetExecution[]
+  
+  // PACC and Budget relations
+  procurementProcesses    ProcurementProcess[]
+  budgetAllocations       BudgetAllocation[]
+  poaPaccBudgetCorrelation PoaPaccBudgetCorrelation?
+  activityProcurements    ActivityProcurement[]
 
   @@unique([productId, code])
   @@map("activities")
@@ -214,24 +216,10 @@ model Indicator {
   measurementUnit   String
   baseline          Float?        @default(0)
   annualTarget      Float
-  reportingFrequency String       @default("QUARTERLY") // QUARTERLY or MONTHLY
   q1Target          Float?        @default(0)
   q2Target          Float?        @default(0)
   q3Target          Float?        @default(0)
   q4Target          Float?        @default(0)
-  // Monthly targets (only when reportingFrequency is MONTHLY)
-  jan_target        Float?        @default(0)
-  feb_target        Float?        @default(0)
-  mar_target        Float?        @default(0)
-  apr_target        Float?        @default(0)
-  may_target        Float?        @default(0)
-  jun_target        Float?        @default(0)
-  jul_target        Float?        @default(0)
-  aug_target        Float?        @default(0)
-  sep_target        Float?        @default(0)
-  oct_target        Float?        @default(0)
-  nov_target        Float?        @default(0)
-  dec_target        Float?        @default(0)
   isActive          Boolean       @default(true)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -268,18 +256,12 @@ model ProgressReport {
   qualitativeComments String?
   challenges          String?
   nextSteps           String?
-  
-  // Enhanced approval system
-  status              String            @default("DRAFT") // DRAFT, SUBMITTED, APPROVED, REJECTED, WITHDRAWN
+  status              String            @default("pendiente") // pendiente, aprobado, rechazado
   reviewComments      String?
-  rejectionReason     String?
-  
-  // Timestamps
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
-  submittedAt         DateTime?
   reviewedAt          DateTime?
-  
+
   // Relations - un reporte puede ser para una actividad O un indicador, no ambos
   activityId String?
   activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
@@ -295,29 +277,9 @@ model ProgressReport {
 
   // File attachments
   attachments ProgressReportAttachment[]
-  
-  // Approval history
-  approvalHistory ReportApprovalHistory[]
 
   @@unique([reportedById, activityId, indicatorId, periodType, period])
   @@map("progress_reports")
-}
-
-// Approval history for audit trail
-model ReportApprovalHistory {
-  id               String         @id @default(uuid())
-  action           String         // CREATED, SUBMITTED, APPROVED, REJECTED, WITHDRAWN, MODIFIED
-  comments         String?
-  createdAt        DateTime       @default(now())
-  
-  // Relations
-  progressReportId String
-  progressReport   ProgressReport @relation(fields: [progressReportId], references: [id], onDelete: Cascade)
-  
-  actionById       String
-  actionBy         User          @relation("ApprovalHistoryBy", fields: [actionById], references: [id])
-  
-  @@map("report_approval_history")
 }
 
 model ProgressReportAttachment {
@@ -336,6 +298,59 @@ model ProgressReportAttachment {
 }
 
 // ========== BUDGET EXECUTION ==========
+
+model BudgetItem {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  category    String?  // Categoría presupuestaria
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  budgetExecutions BudgetExecution[]
+
+  @@map("budget_items")
+}
+
+model BudgetExecution {
+  id                 String   @id @default(uuid())
+  executionDate      DateTime @default(now())
+  amount             Float
+  description        String?
+  documentNumber     String?
+  executionType      String   // COMPROMISO, DEVENGADO, PAGADO
+  month              String
+  quarter            String
+  fiscalYear         Int
+  sigefReference     String?
+  observations       String?
+  
+  // Legacy fields for compatibility
+  year               Int?
+  assignedAmount     Float?   @default(0)
+  committedAmount    Float?   @default(0)
+  accruedAmount      Float?   @default(0)
+  paidAmount         Float?   @default(0)
+  executionPercent   Float?   @default(0)
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  budgetItemId String?
+  budgetItem   BudgetItem? @relation(fields: [budgetItemId], references: [id])
+  
+  budgetAllocationId String?
+  budgetAllocation   BudgetAllocation? @relation(fields: [budgetAllocationId], references: [id], onDelete: Cascade)
+
+  @@map("budget_executions")
+}
 
 // ========== ACTIVITY ASSIGNMENTS ==========
 
@@ -379,142 +394,327 @@ model IndicatorAssignment {
   @@map("indicator_assignments")
 }
 
-// ========== BUDGET EXECUTION MODELS ==========
-
-model BudgetExecution {
-  id          String   @id @default(uuid())
-  
-  // Información básica de la partida presupuestaria
-  budgetCode     String   // Código de la partida presupuestaria (ej: 2.1.1.01.001)
-  budgetName     String   // Nombre de la partida presupuestaria
-  description    String?  // Descripción adicional
-  
-  // Montos presupuestarios
-  assignedAmount    Decimal  @default(0) // Monto Asignado inicial
-  committedAmount   Decimal  @default(0) // Monto Comprometido (reservado)
-  accruedAmount     Decimal  @default(0) // Monto Devengado (obligación contraída)
-  paidAmount        Decimal  @default(0) // Monto Pagado (efectivamente pagado)
-  
-  // Cálculos automáticos (se calculan en la aplicación)
-  commitmentPercent Decimal  @default(0) // % Compromiso = (Comprometido / Asignado) * 100
-  accruedPercent    Decimal  @default(0) // % Devengado = (Devengado / Asignado) * 100
-  executionPercent  Decimal  @default(0) // % Ejecución = (Pagado / Asignado) * 100
-  
-  // Información de programación
-  fiscalYear      Int      // Año fiscal de la ejecución
-  quarter         Int?     // Trimestre (1, 2, 3, 4) - opcional
-  month           Int?     // Mes (1-12) - opcional
-  
-  // Metadatos
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  lastModifiedBy String?  // ID del usuario que hizo la última modificación
-
-  // Relations
-  activityId String
-  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  
-  departmentId String?
-  department   Department? @relation(fields: [departmentId], references: [id])
-  
-  // Usuario responsable de la ejecución presupuestaria
-  responsibleId String?
-  responsible   User? @relation("BudgetResponsible", fields: [responsibleId], references: [id])
-  
-  // Usuario que registró/modificó por última vez
-  modifiedById String?
-  modifiedBy   User? @relation("BudgetModifiedBy", fields: [modifiedById], references: [id])
-
-  @@unique([activityId, budgetCode, fiscalYear]) // Una actividad no puede tener la misma partida duplicada en el mismo año
-  @@index([fiscalYear])
-  @@index([activityId])
-  @@index([budgetCode])
-  @@map("budget_executions")
-}
-
-// ========== PROCUREMENT ANNUAL PLAN (PAC) MODELS ==========
+// ========== PACC (Plan Anual de Compras y Contrataciones) MODELS ==========
 
 model ProcurementProcess {
-  id          String   @id @default(uuid())
+  id               String   @id @default(uuid())
+  description      String
+  procurementType  String   // BIENES, SERVICIOS, OBRAS, CONSULTORIA, ARRENDAMIENTO, SEGURO, MANTENIMIENTO
+  procurementMethod String  // LICITACION_PUBLICA, LICITACION_RESTRINGIDA, COMPARACION_PRECIOS, etc.
+  estimatedAmount  Float
+  currency         String   @default("DOP")
+  plannedStartDate DateTime?
+  plannedEndDate   DateTime?
+  actualStartDate  DateTime?
+  actualEndDate    DateTime?
+  quarter          String?  // Q1, Q2, Q3, Q4
+  month            String?
+  status           String   @default("PLANIFICADO") // PLANIFICADO, EN_PROCESO, ADJUDICADO, EJECUTADO, CANCELADO
+  priority         String   @default("MEDIA") // ALTA, MEDIA, BAJA
+  budgetCode       String?
+  isRecurrent      Boolean  @default(false)
+  legalFramework   String   @default("LEY_340_06")
+  observations     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  activityId       String?
+  activity         Activity? @relation(fields: [activityId], references: [id])
   
-  // Campos alineados a la DGCP (Dirección General de Contrataciones Públicas)
-  cuciCode             String   // Código Único de Clasificación de Ítems
-  description          String   // Descripción del Bien/Servicio
-  measurementUnit      String   // Unidad de Medida (Unidad, Servicio, Global, Quintal)
-  quantity             Float    // Cantidad de unidades requeridas
-  unitCost             Decimal  // Costo Unitario Estimado (RD$)
-  totalCost            Decimal  // Costo Total Estimado (RD$) - calculado automáticamente
+  budgetAllocations BudgetAllocation[]
+  activityProcurements ActivityProcurement[]
+  paccSchedules         PaccSchedule[]
+  paccAlerts            PaccAlert[]
   
-  // Modalidad de compra
-  procurementMethod    String   // Licitación Pública, Comparación de Precios, Compras Menores, Sorteo de Obras, etc.
-  
-  // Fuente de financiamiento
-  fundingSource        String   // Fondos Propios, Préstamo Externo, etc.
-  
-  // Cronograma de fechas
-  plannedStartDate     DateTime? // Fecha Prevista de Inicio del Proceso
-  plannedAwardDate     DateTime? // Fecha Prevista de Adjudicación
-  actualStartDate      DateTime? // Fecha Real de Inicio del Proceso
-  actualAwardDate      DateTime? // Fecha Real de Adjudicación
-  
-  // Estado del proceso
-  status               String   @default("PLANIFICADO") // PLANIFICADO, EN_PROCESO, ADJUDICADO, DESIERTO, CANCELADO
-  
-  // Información adicional
-  notes                String?  // Observaciones adicionales
-  contractNumber       String?  // Número de contrato (cuando sea adjudicado)
-  supplierName         String?  // Nombre del proveedor adjudicado
-  awardedAmount        Decimal? // Monto adjudicado final
-  
-  // Control de versiones y auditoria
-  fiscalYear          Int      // Año fiscal del PAC
-  isActive            Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
-  // Usuario que creó/modificó
-  createdById         String
-  createdBy           User     @relation("ProcurementCreatedBy", fields: [createdById], references: [id])
-  lastModifiedById    String?
-  lastModifiedBy      User?    @relation("ProcurementModifiedBy", fields: [lastModifiedById], references: [id])
-  
-  // Departamento responsable
-  departmentId        String?
-  department          Department? @relation(fields: [departmentId], references: [id])
-  
-  // Relación con actividades del POA (muchos a muchos)
-  activityLinks       ActivityProcurementLink[]
-  
-  @@index([fiscalYear])
-  @@index([status])
-  @@index([cuciCode])
   @@map("procurement_processes")
 }
 
-// Tabla pivote para la relación muchos a muchos entre Activity y ProcurementProcess
-model ActivityProcurementLink {
-  id                    String   @id @default(uuid())
+// ========== BUDGET INTEGRATION MODELS ==========
+
+model BudgetAllocation {
+  id               String   @id @default(uuid())
+  budgetCode       String
+  budgetType       String   // FUNCIONAMIENTO, INVERSION, TRANSFERENCIAS, SERVICIO_DEUDA
+  fiscalYear       Int
+  allocatedAmount  Float
+  executedAmount   Float    @default(0)
+  availableAmount  Float
+  quarter          String?  // Q1, Q2, Q3, Q4
+  month            String?
+  source           String?  // RECURSOS_INTERNOS, DONACIONES, PRESTAMOS, CREDITO_PUBLICO, OTROS
+  category         String?  // 100, 200, 300, 400, 500, 600 (clasificador presupuestario)
+  subcategory      String?
+  object           String?
+  sigefCode        String?
+  observations     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  activityId         String?
+  activity           Activity? @relation(fields: [activityId], references: [id])
   
-  // Información de la vinculación
-  linkReason            String?  // Razón de la vinculación
-  isEssential           Boolean  @default(true) // Si la compra es esencial para la actividad
+  procurementProcessId String?
+  procurementProcess   ProcurementProcess? @relation(fields: [procurementProcessId], references: [id])
+  
+  budgetExecutions   BudgetExecution[]
+  
+  @@map("budget_allocations")
+}
+
+// ========== CORRELATION AND COMPLIANCE MODELS ==========
+
+model PoaPaccBudgetCorrelation {
+  id                   String   @id @default(uuid())
+  activityId           String   @unique
+  activity             Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  
+  hasProcurementNeeds  Boolean  @default(false)
+  procurementCompliance Float   @default(0) // Porcentaje de cumplimiento PACC
+  
+  hasBudgetAllocation  Boolean  @default(false)
+  budgetCompliance     Float    @default(0) // Porcentaje de cumplimiento presupuestario
+  
+  overallCompliance    Float    @default(0) // Cumplimiento general POA-PACC-Budget
+  
+  riskLevel           String   @default("BAJO") // BAJO, MEDIO, ALTO
+  complianceStatus    String   @default("EN_CUMPLIMIENTO") // EN_CUMPLIMIENTO, EN_RIESGO, INCUMPLIMIENTO
+  
+  lastReviewDate      DateTime @default(now())
+  nextReviewDate      DateTime?
+  
+  observations        String?
+  recommendations     String?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@map("poa_pacc_budget_correlations")
+}
+
+model ComplianceReport {
+  id              String   @id @default(uuid())
+  reportType      String   // POA, PACC, BUDGET, INTEGRATED
+  reportPeriod    String   // MONTHLY, QUARTERLY, ANNUAL
+  fiscalYear      Int
+  quarter         String?
+  month           String?
+  
+  totalActivities         Int     @default(0)
+  activitiesOnTrack      Int     @default(0)
+  activitiesAtRisk       Int     @default(0)
+  activitiesDelayed      Int     @default(0)
+  
+  totalProcurements      Int     @default(0)
+  procurementsCompleted  Int     @default(0)
+  procurementsInProcess  Int     @default(0)
+  procurementsDelayed    Int     @default(0)
+  
+  totalBudget            Float   @default(0)
+  budgetExecuted         Float   @default(0)
+  budgetAvailable        Float   @default(0)
+  executionPercentage    Float   @default(0)
+  
+  overallCompliance      Float   @default(0)
+  complianceGrade        String? // A, B, C, D, F
+  
+  recommendations        String?
+  actionPlan            String?
+  
+  generatedAt           DateTime @default(now())
+  generatedBy           String?
+  approvedAt            DateTime?
+  approvedBy            String?
+  
+  @@map("compliance_reports")
+}
+
+// ========== TABLAS DE VINCULACIÓN POA-PACC ==========
+
+model ActivityProcurement {
+  id                    String   @id @default(uuid())
+  activityId            String
+  procurementProcessId  String
+  relationship          String   @default("REQUIRED") // REQUIRED, OPTIONAL, DEPENDENT
+  priority              String   @default("MEDIUM")   // HIGH, MEDIUM, LOW
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+
+  // Relations
+  activity              Activity         @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  procurementProcess    ProcurementProcess @relation(fields: [procurementProcessId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, procurementProcessId])
+  @@map("activity_procurement")
+}
+
+// ========== PACC SCHEDULE AND COMPLIANCE MODELS ==========
+
+model PaccSchedule {
+  id                   String   @id @default(uuid())
+  procurementProcessId String
+  procurementProcess   ProcurementProcess @relation(fields: [procurementProcessId], references: [id], onDelete: Cascade)
   
-  // Usuario que creó la vinculación
-  linkedById            String
-  linkedBy              User     @relation(fields: [linkedById], references: [id])
+  scheduledPhase       String   // PLANIFICACION, LICITACION, EVALUACION, ADJUDICACION, CONTRATACION, EJECUCION
+  phaseName            String
+  
+  plannedStartDate     DateTime
+  plannedEndDate       DateTime
+  actualStartDate      DateTime?
+  actualEndDate        DateTime?
+  
+  status               String   @default("PENDIENTE") // PENDIENTE, EN_PROCESO, COMPLETADA, RETRASADA, CANCELADA
+  responsibleUserId    String?
+  responsibleUser      User?    @relation(fields: [responsibleUserId], references: [id])
+  
+  milestones           String?  // Descripción de hitos principales
+  dependencies         String?  // Dependencias del cronograma
+  criticalPath         Boolean  @default(false)
+  
+  estimatedDuration    Int?     // Duración estimada en días
+  actualDuration       Int?     // Duración real en días
+  compliancePercentage Float    @default(0)
+  
+  risks                String?  // Riesgos identificados
+  observations         String?  // Observaciones del progreso
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  // Relations
+  alerts               PaccAlert[]
+  
+  @@map("pacc_schedules")
+}
+
+model PaccCompliance {
+  id                      String   @id @default(uuid())
+  evaluationPeriod        String   // 2025-01, 2025-Q1, etc.
+  periodType              String   // MENSUAL, TRIMESTRAL, ANUAL
+  fiscalYear              Int
+  
+  // Estadísticas de procesos
+  totalProcesses          Int      @default(0)
+  processesOnSchedule     Int      @default(0)
+  processesDelayed        Int      @default(0)
+  processesAtRisk         Int      @default(0)
+  processesCancelled      Int      @default(0)
+  
+  // Cumplimiento de hitos
+  scheduledMilestones     Int      @default(0)
+  achievedMilestones      Int      @default(0)
+  delayedMilestones       Int      @default(0)
+  milestoneComplianceRate Float    @default(0)
+  
+  // Métricas de tiempo
+  averageDelay            Float    @default(0)
+  criticalPathCompliance  Float    @default(0)
+  budgetCompliance        Float    @default(0)
+  
+  // Puntuaciones de cumplimiento
+  legalComplianceScore    Float    @default(0)
+  timelinessScore         Float    @default(0)
+  qualityScore            Float    @default(0)
+  overallScore            Float    @default(0)
+  complianceGrade         String?  // A+, A, B+, B, C+, C, D, F
+  
+  // Análisis cualitativo
+  keyFindings             String?
+  recommendations         String?
+  actionPlan              String?
+  riskFactors             String?
+  mitigationMeasures      String?
+  
+  // Metadatos
+  evaluatedBy             String?
+  approvedBy              String?
+  evaluatedByUser         User?    @relation("EvaluatedBy", fields: [evaluatedBy], references: [id])
+  approvedByUser          User?    @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  evaluationDate          DateTime @default(now())
+  approvalDate            DateTime?
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+  
+  @@map("pacc_compliances")
+}
+
+model PaccAlert {
+  id                   String   @id @default(uuid())
+  alertType            String   // CRITICAL_DELAY, BUDGET_THRESHOLD, DOCUMENT_EXPIRY, LEGAL_REQUIREMENT, MILESTONE_RISK
+  severity             String   // BAJA, MEDIA, ALTA, CRITICA
+  title                String
+  description          String
   
   // Relaciones
-  activityId            String
-  activity              Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  procurementProcessId String?
+  procurementProcess   ProcurementProcess? @relation(fields: [procurementProcessId], references: [id], onDelete: Cascade)
+  scheduleId           String?
+  schedule             PaccSchedule?       @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   
-  procurementProcessId  String
-  procurementProcess    ProcurementProcess @relation(fields: [procurementProcessId], references: [id], onDelete: Cascade)
+  // Fechas
+  triggerDate          DateTime @default(now())
+  dueDate              DateTime?
+  resolvedDate         DateTime?
   
-  @@unique([activityId, procurementProcessId])
-  @@map("activity_procurement_links")
+  // Estado
+  status               String   @default("ACTIVA") // ACTIVA, PENDIENTE, RESUELTA, CANCELADA
+  priority             String   @default("MEDIA")  // BAJA, MEDIA, ALTA, CRITICA
+  
+  // Detalles
+  affectedMilestones   String?
+  potentialImpact      String?
+  suggestedActions     String?
+  
+  // Asignación
+  assignedTo           String?
+  assignedUser         User?    @relation("AssignedTo", fields: [assignedTo], references: [id])
+  createdBy            String
+  escalatedTo          String?
+  escalatedUser        User?    @relation("EscalatedTo", fields: [escalatedTo], references: [id])
+  
+  // Configuración
+  autoGenerated        Boolean  @default(false)
+  requiresApproval     Boolean  @default(false)
+  notificationSent     Boolean  @default(false)
+  
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  
+  @@map("pacc_alerts")
+}
+
+model PaccReport {
+  id                  String   @id @default(uuid())
+  reportType          String   // MONTHLY_COMPLIANCE, QUARTERLY_REVIEW, ANNUAL_SUMMARY, PROCESS_SPECIFIC
+  reportPeriod        String   // 2025-01, 2025-Q1, 2025, etc.
+  fiscalYear          Int
+  
+  // Contenido del reporte
+  executiveSummary    String?
+  performanceMetrics  String?  // JSON con métricas clave
+  processesAnalysis   String?
+  achievedMilestones  String?
+  pendingMilestones   String?
+  riskAssessment      String?
+  budgetStatus        String?
+  legalCompliance     String?
+  recommendations     String?
+  nextPeriodPlanning  String?
+  
+  // Metadatos
+  generatedBy         String?
+  approvedBy          String?
+  generatedByUser     User?    @relation("GeneratedBy", fields: [generatedBy], references: [id])
+  approvedByUser      User?    @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  generationDate      DateTime @default(now())
+  approvalDate        DateTime?
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@map("pacc_reports")
 }
 
 // ========== ENUMS replaced with strings for SQLite compatibility ==========
@@ -523,3 +723,8 @@ model ActivityProcurementLink {
 // IndicatorType: PRODUCT, RESULT  
 // ReportingPeriod: MONTHLY, QUARTERLY, ANNUAL
 // ReportStatus: DRAFT, SUBMITTED, APPROVED, REJECTED
+// ProcurementType: BIENES, SERVICIOS, OBRAS, CONSULTORIA, ARRENDAMIENTO, SEGURO, MANTENIMIENTO
+// ProcurementMethod: LICITACION_PUBLICA, LICITACION_RESTRINGIDA, COMPARACION_PRECIOS, COMPRA_MENOR, SUBASTA_INVERSA, CONTRATACION_DIRECTA, EMERGENCIA
+// ProcurementStatus: PLANIFICADO, EN_PROCESO, ADJUDICADO, EJECUTADO, CANCELADO
+// BudgetType: FUNCIONAMIENTO, INVERSION, TRANSFERENCIAS, SERVICIO_DEUDA
+// ComplianceStatus: EN_CUMPLIMIENTO, EN_RIESGO, INCUMPLIMIENTO

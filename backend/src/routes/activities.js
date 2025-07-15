@@ -13,10 +13,8 @@ const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
-      success: false,
-      data: null,
-      message: 'Datos de entrada inválidos',
-      errors: errors.array()
+      error: 'Datos de entrada inválidos',
+      details: errors.array()
     });
   }
   next();
@@ -181,24 +179,19 @@ router.get('/',
       ]);
 
       res.json({
-        success: true,
-        data: {
-          activities,
-          pagination: {
-            page: parseInt(page),
-            limit: parseInt(limit),
-            total,
-            pages: Math.ceil(total / parseInt(limit))
-          }
-        },
-        message: `${activities.length} actividades encontradas`
+        data: activities,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
       });
 
     } catch (error) {
       logger.error('Error al obtener actividades:', error);
       res.status(500).json({
-        success: false,
-        data: null,
+        error: 'Error interno del servidor',
         message: 'No se pudieron obtener las actividades'
       });
     }
@@ -744,17 +737,12 @@ router.get('/:id',
 
       if (!activity) {
         return res.status(404).json({
-          success: false,
-          data: null,
+          error: 'Actividad no encontrada',
           message: 'La actividad especificada no existe'
         });
       }
 
-      res.json({
-        success: true,
-        data: activity,
-        message: 'Actividad encontrada'
-      });
+      res.json(activity);
 
     } catch (error) {
       logger.error('Error al obtener actividad:', error);
@@ -1031,16 +1019,14 @@ router.put('/:id',
       logger.info(`Actividad actualizada: ${activity.code} - ${activity.name}`);
 
       res.json({
-        success: true,
-        data: activity,
-        message: 'Actividad actualizada exitosamente'
+        message: 'Actividad actualizada exitosamente',
+        data: activity
       });
 
     } catch (error) {
       logger.error('Error al actualizar actividad:', error);
       res.status(500).json({
-        success: false,
-        data: null,
+        error: 'Error interno del servidor',
         message: 'No se pudo actualizar la actividad'
       });
     }
@@ -1495,6 +1481,181 @@ router.get('/:id/statistics',
       res.status(500).json({
         error: 'Error interno del servidor',
         message: 'No se pudieron obtener las estadísticas'
+      });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/activity-procurement-links
+ * @desc    Obtener todas las vinculaciones de actividades con procesos de compra
+ * @access  Private (requires read:activity permission)
+ */
+router.get('/procurement-links',
+  authenticateToken,
+  authorize('read', 'activity'),
+  async (req, res) => {
+    try {
+      const links = await prisma.activityProcurement.findMany({
+        include: {
+          activity: {
+            select: {
+              id: true,
+              name: true,
+              code: true
+            }
+          },
+          procurementProcess: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              method: true,
+              estimatedCost: true,
+              status: true
+            }
+          }
+        }
+      });
+
+      res.json(links);
+    } catch (error) {
+      logger.error('Error al obtener vinculaciones de actividades con procurement:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No se pudieron obtener las vinculaciones'
+      });
+    }
+  }
+);
+
+/**
+ * @route   POST /api/activity-procurement-links
+ * @desc    Crear vinculación entre actividad y proceso de compra
+ * @access  Private (requires create:activity permission)
+ */
+router.post('/procurement-links',
+  authenticateToken,
+  authorize('create', 'activity'),
+  [
+    body('activityId').isUUID().withMessage('activityId debe ser un UUID válido'),
+    body('procurementProcessId').isUUID().withMessage('procurementProcessId debe ser un UUID válido'),
+    body('relationship').optional().isString().withMessage('relationship debe ser un string'),
+    body('priority').optional().isIn(['HIGH', 'MEDIUM', 'LOW']).withMessage('priority debe ser HIGH, MEDIUM o LOW')
+  ],
+  handleValidationErrors,
+  async (req, res) => {
+    try {
+      const { activityId, procurementProcessId, relationship, priority } = req.body;
+
+      // Verificar que la actividad existe
+      const activity = await prisma.activity.findUnique({
+        where: { id: activityId }
+      });
+
+      if (!activity) {
+        return res.status(404).json({
+          error: 'Actividad no encontrada'
+        });
+      }
+
+      // Verificar que el proceso de compra existe
+      const procurementProcess = await prisma.procurementProcess.findUnique({
+        where: { id: procurementProcessId }
+      });
+
+      if (!procurementProcess) {
+        return res.status(404).json({
+          error: 'Proceso de compra no encontrado'
+        });
+      }
+
+      // Crear la vinculación
+      const link = await prisma.activityProcurement.create({
+        data: {
+          activityId,
+          procurementProcessId,
+          relationship: relationship || 'REQUIRED',
+          priority: priority || 'MEDIUM',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        include: {
+          activity: {
+            select: {
+              id: true,
+              name: true,
+              code: true
+            }
+          },
+          procurementProcess: {
+            select: {
+              id: true,
+              title: true,
+              type: true,
+              method: true,
+              estimatedCost: true,
+              status: true
+            }
+          }
+        }
+      });
+
+      logger.info(`Vinculación actividad-procurement creada: ${link.id}`, {
+        activityId,
+        procurementProcessId,
+        userId: req.user.id
+      });
+
+      res.status(201).json(link);
+
+    } catch (error) {
+      logger.error('Error al crear vinculación actividad-procurement:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No se pudo crear la vinculación'
+      });
+    }
+  }
+);
+
+/**
+ * @route   DELETE /api/activity-procurement-links/:id
+ * @desc    Eliminar vinculación entre actividad y proceso de compra
+ * @access  Private (requires delete:activity permission)
+ */
+router.delete('/procurement-links/:id',
+  authenticateToken,
+  authorize('delete', 'activity'),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const link = await prisma.activityProcurement.findUnique({
+        where: { id }
+      });
+
+      if (!link) {
+        return res.status(404).json({
+          error: 'Vinculación no encontrada'
+        });
+      }
+
+      await prisma.activityProcurement.delete({
+        where: { id }
+      });
+
+      logger.info(`Vinculación actividad-procurement eliminada: ${id}`, {
+        userId: req.user.id
+      });
+
+      res.status(204).send();
+
+    } catch (error) {
+      logger.error('Error al eliminar vinculación actividad-procurement:', error);
+      res.status(500).json({
+        error: 'Error interno del servidor',
+        message: 'No se pudo eliminar la vinculación'
       });
     }
   }

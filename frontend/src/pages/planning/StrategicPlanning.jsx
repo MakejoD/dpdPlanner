@@ -23,7 +23,10 @@ import {
   Analytics as AnalyticsIcon,
   Settings as SettingsIcon,
   Visibility as ViewIcon,
-  TrackChanges as TargetIcon
+  TrackChanges as TargetIcon,
+  ShoppingCart as PACCIcon,
+  AccountBalance as BudgetIcon,
+  Timeline as IntegrationIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import StrategicAxesManagement from './StrategicAxesManagement';
@@ -31,6 +34,8 @@ import ObjectiveManagement from './ObjectiveManagement';
 import ProductManagement from './ProductManagement';
 import ActivityManagement from './ActivityManagement';
 import IndicatorManagement from './IndicatorManagement';
+import PACCManagement from './PACCManagement';
+import BudgetIntegration from './BudgetIntegration';
 
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -114,6 +119,39 @@ const StrategicPlanning = () => {
       color: 'success',
       count: '15',
       subtitle: 'Indicadores de gestión'
+    },
+    {
+      id: 'pacc',
+      title: 'PACC',
+      description: 'Plan Anual de Compras y Contrataciones según normativa RD',
+      icon: <PACCIcon />,
+      status: 'active',
+      progress: 85,
+      color: 'warning',
+      count: '12',
+      subtitle: 'Procesos de compras'
+    },
+    {
+      id: 'budget',
+      title: 'Presupuesto',
+      description: 'Integración presupuestaria POA-PACC-SIGEF',
+      icon: <BudgetIcon />,
+      status: 'active',
+      progress: 90,
+      color: 'error',
+      count: 'RD$45M',
+      subtitle: 'Presupuesto asignado'
+    },
+    {
+      id: 'integration',
+      title: 'Correlación POA-PACC-Presupuesto',
+      description: 'Dashboard integrado de correlación y seguimiento',
+      icon: <IntegrationIcon />,
+      status: 'active',
+      progress: 95,
+      color: 'info',
+      count: '98%',
+      subtitle: 'Nivel de correlación'
     }
   ];
 
@@ -130,9 +168,9 @@ const StrategicPlanning = () => {
       </Box>
 
       {/* Overview Cards */}
-      <Grid container spacing={4} sx={{ mb: 4 }}>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
         {planningModules.map((module) => (
-          <Grid item xs={12} sm={6} lg={4} key={module.id}>
+          <Grid item xs={12} sm={6} lg={3} key={module.id}>
             <Card 
               sx={{ 
                 height: '100%',
@@ -156,6 +194,12 @@ const StrategicPlanning = () => {
                     setActiveTab(3);
                   } else if (module.id === 'indicators') {
                     setActiveTab(4);
+                  } else if (module.id === 'pacc') {
+                    setActiveTab(5);
+                  } else if (module.id === 'budget') {
+                    setActiveTab(6);
+                  } else if (module.id === 'integration') {
+                    setActiveTab(7);
                   }
                 }
               }}
@@ -272,6 +316,12 @@ const StrategicPlanning = () => {
                         setActiveTab(3);
                       } else if (module.id === 'indicators') {
                         setActiveTab(4);
+                      } else if (module.id === 'pacc') {
+                        setActiveTab(5);
+                      } else if (module.id === 'budget') {
+                        setActiveTab(6);
+                      } else if (module.id === 'integration') {
+                        setActiveTab(7);
                       }
                     }}
                     sx={{
@@ -309,6 +359,9 @@ const StrategicPlanning = () => {
           <Tab label="🎁 Productos/Servicios" />
           <Tab label="⚙️ Actividades" />
           <Tab label="📈 Indicadores" />
+          <Tab label="🛒 PACC" />
+          <Tab label="💰 Presupuesto" />
+          <Tab label="🔗 Correlación POA-PACC-Presupuesto" />
         </Tabs>
         
         <TabPanel value={activeTab} index={0}>
@@ -329,6 +382,67 @@ const StrategicPlanning = () => {
         
         <TabPanel value={activeTab} index={4}>
           <IndicatorManagement />
+        </TabPanel>
+        
+        <TabPanel value={activeTab} index={5}>
+          <PACCManagement />
+        </TabPanel>
+        
+        <TabPanel value={activeTab} index={6}>
+          <BudgetIntegration />
+        </TabPanel>
+        
+        <TabPanel value={activeTab} index={7}>
+          <Box sx={{ p: 3 }}>
+            <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <IntegrationIcon color="primary" />
+              Dashboard de Correlación POA-PACC-Presupuesto
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+              Vista integral de la correlación entre Plan Operativo Anual, Plan Anual de Compras y Contrataciones, y Presupuesto según normativa dominicana
+            </Typography>
+            
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={4}>
+                <Card sx={{ height: '100%', bgcolor: 'primary.50' }}>
+                  <CardContent>
+                    <Typography variant="h6" color="primary.main" gutterBottom>
+                      📋 POA
+                    </Typography>
+                    <Typography variant="body2">
+                      Planificación estratégica institucional alineada con objetivos nacionales
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <Card sx={{ height: '100%', bgcolor: 'warning.50' }}>
+                  <CardContent>
+                    <Typography variant="h6" color="warning.main" gutterBottom>
+                      🛒 PACC
+                    </Typography>
+                    <Typography variant="body2">
+                      Plan de adquisiciones vinculado a actividades del POA según Ley 340-06
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+              
+              <Grid item xs={12} md={4}>
+                <Card sx={{ height: '100%', bgcolor: 'error.50' }}>
+                  <CardContent>
+                    <Typography variant="h6" color="error.main" gutterBottom>
+                      💰 Presupuesto
+                    </Typography>
+                    <Typography variant="body2">
+                      Asignación presupuestaria SIGEF integrada con POA y PACC
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            </Grid>
+          </Box>
         </TabPanel>
       </Paper>
     </Box>

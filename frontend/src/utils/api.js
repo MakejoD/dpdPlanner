@@ -1,51 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
-// Función helper para manejar errores 401
-const handleUnauthorized = () => {
-  localStorage.removeItem('token')
-  // Recargar la página para forzar logout
-  if (window.location.pathname !== '/login') {
-    window.location.href = '/login'
-  }
-}
-
-// Función helper para manejar respuestas HTTP
-const handleResponse = async (response, options = {}) => {
-  if (!response.ok) {
-    // Para errores, siempre intentar parsear como JSON
-    const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
-    
-    // Manejar errores 401 automáticamente
-    if (response.status === 401) {
-      handleUnauthorized()
-    }
-    
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-  }
-  
-  // Si se especifica responseType como 'blob', retornar el blob directamente
-  if (options.responseType === 'blob') {
-    const blob = await response.blob()
-    return { 
-      data: blob,
-      headers: Object.fromEntries(response.headers.entries())
-    }
-  }
-  
-  // Si se especifica responseType como 'arraybuffer', retornar el buffer
-  if (options.responseType === 'arraybuffer') {
-    const buffer = await response.arrayBuffer()
-    return { 
-      data: buffer,
-      headers: Object.fromEntries(response.headers.entries())
-    }
-  }
-  
-  // Por defecto, parsear como JSON
-  const jsonData = await response.json()
-  return { data: jsonData }
-}
-
 // Función helper para construir URLs correctamente
 const buildUrl = (endpoint) => {
   // Remover slash inicial del endpoint si existe
@@ -69,7 +23,12 @@ const httpClient = {
       ...options,
     })
     
-    return handleResponse(response, options)
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+    
+    return response.json()
   },
   
   post: async (url, data, options = {}) => {
@@ -78,19 +37,34 @@ const httpClient = {
     // Determinar si estamos enviando FormData
     const isFormData = data instanceof FormData
     
-    const response = await fetch(buildUrl(url), {
-      method: 'POST',
-      headers: {
-        // Solo agregar Content-Type si no es FormData (el browser lo agrega automáticamente)
-        ...(!isFormData && { 'Content-Type': 'application/json' }),
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...options.headers,
-      },
-      body: isFormData ? data : JSON.stringify(data),
-      ...options,
-    })
-    
-    return handleResponse(response, options)
+    try {
+      const response = await fetch(buildUrl(url), {
+        method: 'POST',
+        headers: {
+          // Solo agregar Content-Type si no es FormData (el browser lo agrega automáticamente)
+          ...(!isFormData && { 'Content-Type': 'application/json' }),
+          ...(token && { Authorization: `Bearer ${token}` }),
+          ...options.headers,
+        },
+        body: isFormData ? data : JSON.stringify(data),
+        ...options,
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+      
+      const result = await response.json()
+      return result
+    } catch (error) {
+      console.error('HTTP POST Error:', error)
+      // Si es un error de red/conectividad
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new Error('No se puede conectar al servidor. Verifique que el backend esté ejecutándose en el puerto 3001.')
+      }
+      throw error
+    }
   },
   
   put: async (url, data, options = {}) => {
@@ -111,7 +85,12 @@ const httpClient = {
       ...options,
     })
     
-    return handleResponse(response, options)
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+    
+    return response.json()
   },
   
   delete: async (url, options = {}) => {
@@ -126,7 +105,12 @@ const httpClient = {
       ...options,
     })
     
-    return handleResponse(response, options)
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Error desconocido' }))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+    
+    return response.json()
   },
 }
 
@@ -155,3 +139,50 @@ export const api = {
 }
 
 export { httpClient }
+
+// ========== PACC API Functions ==========
+
+// PACC Schedules
+export const paccAPI = {
+  // Cronogramas PACC
+  schedules: {
+    getAll: () => httpClient.get('/pacc/schedules'),
+    getById: (id) => httpClient.get(`/pacc/schedules/${id}`),
+    update: (id, data) => httpClient.put(`/pacc/schedules/${id}`, data),
+  },
+
+  // Alertas PACC
+  alerts: {
+    getAll: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      return httpClient.get(`/pacc/alerts${queryString ? `?${queryString}` : ''}`);
+    },
+    create: (data) => httpClient.post('/pacc/alerts', data),
+    update: (id, data) => httpClient.put(`/pacc/alerts/${id}`, data),
+  },
+
+  // Cumplimiento PACC
+  compliance: {
+    getLatest: () => httpClient.get('/pacc/compliance/latest'),
+    getAll: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      return httpClient.get(`/pacc/compliance${queryString ? `?${queryString}` : ''}`);
+    },
+    create: (data) => httpClient.post('/pacc/compliance', data),
+  },
+
+  // Reportes PACC
+  reports: {
+    getAll: () => httpClient.get('/pacc/reports'),
+    generateExecutive: () => httpClient.get('/pacc/reports/executive'),
+  },
+
+  // Dashboard PACC
+  dashboard: {
+    getData: () => httpClient.get('/pacc/dashboard'),
+    getMetrics: (params = {}) => {
+      const queryString = new URLSearchParams(params).toString();
+      return httpClient.get(`/pacc/metrics${queryString ? `?${queryString}` : ''}`);
+    },
+  },
+};

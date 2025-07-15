@@ -30,8 +30,7 @@ import {
   Grid,
   FormControlLabel,
   Switch,
-  Fab,
-  Snackbar
+  Fab
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -40,11 +39,8 @@ import {
   ExpandMore as ExpandMoreIcon,
   TrackChanges as TargetIcon
 } from '@mui/icons-material';
-import { useAuth } from '../../contexts/AuthContext';
-import { httpClient } from '../../utils/api';
 
 const ObjectiveManagement = () => {
-  const { user, hasPermission } = useAuth();
   const [objectives, setObjectives] = useState([]);
   const [strategicAxes, setStrategicAxes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +50,6 @@ const ObjectiveManagement = () => {
   const [editingObjective, setEditingObjective] = useState(null);
   const [selectedAxisId, setSelectedAxisId] = useState('');
   const [groupByAxis, setGroupByAxis] = useState(true);
-  const [alert, setAlert] = useState({ open: false, message: '', severity: 'info' });
 
   const [formData, setFormData] = useState({
     name: '',
@@ -68,46 +63,36 @@ const ObjectiveManagement = () => {
     loadData();
   }, []);
 
-  const showAlert = (message, severity = 'info') => {
-    setAlert({ open: true, message, severity });
-  };
-
-  const handleCloseAlert = () => {
-    setAlert({ open: false, message: '', severity: 'info' });
-  };
-
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      console.log('Cargando datos de objetivos...');
-      
-      // Cargar ejes estratégicos y objetivos
-      const [axesResponse, objectivesResponse] = await Promise.all([
-        httpClient.get('/strategic-axes'),
-        httpClient.get('/objectives')
-      ]);
-      
-      console.log('Respuesta de ejes estratégicos:', axesResponse);
-      console.log('Respuesta de objetivos:', objectivesResponse);
-      
-      // Usar la nueva estructura de respuesta de las APIs
-      setStrategicAxes(axesResponse?.data?.data || []);
-      setObjectives(objectivesResponse?.data?.data || []);
-      
-      if (!axesResponse?.data?.success) {
-        showAlert(axesResponse?.data?.message || 'Error al cargar ejes estratégicos', 'error');
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Cargar ejes estratégicos
+      const axesResponse = await fetch('http://localhost:3001/api/strategic-axes', { headers });
+      if (!axesResponse.ok) {
+        throw new Error(`Error al cargar ejes estratégicos: ${axesResponse.status}`);
       }
-      
-      if (!objectivesResponse?.success) {
-        showAlert(objectivesResponse?.message || 'Error al cargar objetivos', 'error');
+      const axesData = await axesResponse.json();
+      console.log('Respuesta de ejes estratégicos:', axesData);
+      setStrategicAxes(Array.isArray(axesData) ? axesData : (axesData.data || []));
+
+      // Cargar objetivos
+      const objectivesResponse = await fetch('http://localhost:3001/api/objectives', { headers });
+      if (!objectivesResponse.ok) {
+        throw new Error(`Error al cargar objetivos: ${objectivesResponse.status}`);
       }
-      
+      const objectivesData = await objectivesResponse.json();
+      console.log('Respuesta de objetivos:', objectivesData);
+      setObjectives(Array.isArray(objectivesData) ? objectivesData : (objectivesData.data || []));
+
       setError('');
     } catch (err) {
-      console.error('Error cargando datos:', err);
-      setError('Error al cargar datos del sistema');
-      showAlert(err.message || 'Error al cargar datos', 'error');
+      setError('Error al cargar los datos: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -150,48 +135,61 @@ const ObjectiveManagement = () => {
 
   const handleSubmit = async () => {
     try {
-      const dataToSend = {
-        name: formData.name,
-        description: formData.description,
-        code: formData.code,
-        strategicAxisId: formData.strategicAxisId,
-        order: formData.order || 0
+      const token = localStorage.getItem('token');
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       };
 
-      let response;
-      if (editingObjective) {
-        response = await httpClient.put(`/objectives/${editingObjective.id}`, dataToSend);
-        showAlert(response.data.message || 'Objetivo actualizado exitosamente', 'success');
-      } else {
-        response = await httpClient.post('/objectives', dataToSend);
-        showAlert(response.data.message || 'Objetivo creado exitosamente', 'success');
+      const method = editingObjective ? 'PUT' : 'POST';
+      const url = editingObjective 
+        ? `http://localhost:3001/api/objectives/${editingObjective.id}`
+        : 'http://localhost:3001/api/objectives';
+
+      const response = await fetch(url, {
+        method,
+        headers,
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al guardar el objetivo');
       }
 
+      setSuccess(editingObjective ? 'Objetivo actualizado exitosamente' : 'Objetivo creado exitosamente');
       handleCloseDialog();
       loadData();
     } catch (err) {
-      console.error('Error guardando objetivo:', err);
-      showAlert(err.message || 'Error al guardar el objetivo', 'error');
+      setError('Error al guardar: ' + err.message);
     }
   };
 
-  const handleDelete = async (objective) => {
-    if (!window.confirm(`¿Está seguro de que desea eliminar el objetivo "${objective.name}"?`)) {
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Está seguro de que desea eliminar este objetivo?')) {
       return;
     }
 
     try {
-      const response = await httpClient.delete(`/objectives/${objective.id}`);
-      showAlert(response.data.message || 'Objetivo eliminado exitosamente', 'success');
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3001/api/objectives/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el objetivo');
+      }
+
+      setSuccess('Objetivo eliminado exitosamente');
       loadData();
     } catch (err) {
-      console.error('Error eliminando objetivo:', err);
-      showAlert(err.message || 'Error al eliminar el objetivo', 'error');
+      setError('Error al eliminar: ' + err.message);
     }
   };
 
   const getFilteredObjectives = () => {
-    if (!Array.isArray(objectives)) return [];
     if (selectedAxisId) {
       return objectives.filter(obj => obj.strategicAxisId === selectedAxisId);
     }
@@ -200,21 +198,19 @@ const ObjectiveManagement = () => {
 
   const getObjectivesByAxis = () => {
     const grouped = {};
-    if (Array.isArray(strategicAxes)) {
-      strategicAxes.forEach(axis => {
-        grouped[axis.id] = {
-          axis: axis,
-          objectives: Array.isArray(objectives) ? objectives.filter(obj => obj.strategicAxisId === axis.id) : []
-        };
-      });
-    }
+    strategicAxes.forEach(axis => {
+      grouped[axis.id] = {
+        axis: axis,
+        objectives: objectives.filter(obj => obj.strategicAxisId === axis.id)
+      };
+    });
     return grouped;
   };
 
   const generateCode = (axisCode) => {
-    const axisObjectives = Array.isArray(objectives) ? objectives.filter(obj => 
+    const axisObjectives = objectives.filter(obj => 
       obj.strategicAxis?.code === axisCode
-    ) : [];
+    );
     const nextNumber = axisObjectives.length + 1;
     return `OBJ-${axisCode.split('-')[1]}-${nextNumber.toString().padStart(2, '0')}`;
   };
@@ -278,11 +274,11 @@ const ObjectiveManagement = () => {
                   label="Filtrar por Eje Estratégico"
                 >
                   <MenuItem value="">Todos los ejes</MenuItem>
-                  {Array.isArray(strategicAxes) ? strategicAxes.map((axis) => (
+                  {strategicAxes.map((axis) => (
                     <MenuItem key={axis.id} value={axis.id}>
                       {axis.code} - {axis.name}
                     </MenuItem>
-                  )) : []}
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -372,7 +368,7 @@ const ObjectiveManagement = () => {
                               <EditIcon />
                             </IconButton>
                             <IconButton
-                              onClick={() => handleDelete(objective)}
+                              onClick={() => handleDelete(objective.id)}
                               color="error"
                             >
                               <DeleteIcon />
@@ -457,7 +453,7 @@ const ObjectiveManagement = () => {
                       <EditIcon />
                     </IconButton>
                     <IconButton
-                      onClick={() => handleDelete(objective)}
+                      onClick={() => handleDelete(objective.id)}
                       color="error"
                     >
                       <DeleteIcon />
@@ -531,11 +527,11 @@ const ObjectiveManagement = () => {
                   }}
                   label="Eje Estratégico"
                 >
-                  {Array.isArray(strategicAxes) ? strategicAxes.map((axis) => (
+                  {strategicAxes.map((axis) => (
                     <MenuItem key={axis.id} value={axis.id}>
                       {axis.code} - {axis.name}
                     </MenuItem>
-                  )) : []}
+                  ))}
                 </Select>
               </FormControl>
             </Grid>
@@ -576,22 +572,6 @@ const ObjectiveManagement = () => {
       >
         <AddIcon />
       </Fab>
-
-      {/* Snackbar para notificaciones */}
-      <Snackbar 
-        open={alert.open} 
-        autoHideDuration={6000} 
-        onClose={handleCloseAlert}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      >
-        <Alert 
-          onClose={handleCloseAlert} 
-          severity={alert.severity} 
-          sx={{ width: '100%' }}
-        >
-          {alert.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

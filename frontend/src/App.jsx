@@ -7,11 +7,9 @@ import LoadingScreen from './components/common/LoadingScreen'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardLayout from './components/layout/DashboardLayout'
 import TestLogin from './TestLogin'
-import ApprovalSystemTest from './components/common/ApprovalSystemTest'
 
 // Pages
 import Dashboard from './pages/dashboard/Dashboard'
-import DashboardAdvanced from './pages/dashboard/DashboardAdvanced'
 import UserManagement from './pages/admin/UserManagement'
 import RoleManagement from './pages/admin/RoleManagement'
 import DepartmentManagement from './pages/admin/DepartmentManagement'
@@ -23,17 +21,11 @@ import ActivityManagement from './pages/planning/ActivityManagement'
 import IndicatorManagement from './pages/planning/IndicatorManagement'
 import TestUserSelect from './pages/planning/TestUserSelect'
 import ProgressTracking from './pages/tracking/ProgressTracking'
-import ApprovalManagement from './pages/tracking/ApprovalManagement'
 import BudgetExecution from './pages/budget/BudgetExecution'
+import PACCScheduleManagement from './pages/pacc/PACCScheduleManagement'
+import PACCDashboard from './pages/pacc/PACCDashboard'
 import Reports from './pages/reports/Reports'
 import Profile from './pages/profile/Profile'
-import TestDepartments from './TestDepartments'
-import TestSessionPersistence from './TestSessionPersistence'
-
-// Módulo PAC (Plan Anual de Compras)
-import ProcurementManagement from './pages/procurement/ProcurementManagement'
-import POAPACLinking from './pages/procurement/POAPACLinking'
-import PACReports from './pages/procurement/PACReports'
 
 // Componente para rutas protegidas
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -89,9 +81,6 @@ function App() {
         
         {/* Test route */}
         <Route path="/test" element={<TestLogin />} />
-        <Route path="/test-approval" element={<ApprovalSystemTest />} />
-        <Route path="/test-departments" element={<TestDepartments />} />
-        <Route path="/test-session" element={<TestSessionPersistence />} />
 
         {/* Rutas protegidas */}
         <Route 
@@ -101,8 +90,7 @@ function App() {
               <DashboardLayout>
                 <Routes>
                   {/* Dashboard principal */}
-                  <Route path="/dashboard" element={<DashboardAdvanced />} />
-                  <Route path="/dashboard-basic" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
 
                   {/* Administración del sistema */}
                   <Route 
@@ -202,14 +190,6 @@ function App() {
                     } 
                   />
                   <Route 
-                    path="/approvals" 
-                    element={
-                      <ProtectedRoute requiredPermission="approve:progress-report">
-                        <ApprovalManagement />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
                     path="/tracking/indicators" 
                     element={
                       <ProtectedRoute requiredPermission="read:indicator">
@@ -219,9 +199,8 @@ function App() {
                   />
 
                   {/* Ejecución presupuestaria */}
-                  <Route path="/budget" element={<Navigate to="/budget/execution" replace />} />
                   <Route 
-                    path="/budget/execution" 
+                    path="/budget/*" 
                     element={
                       <ProtectedRoute requiredPermission="read:budget">
                         <BudgetExecution />
@@ -229,29 +208,21 @@ function App() {
                     } 
                   />
 
-                  {/* Plan Anual de Compras (PAC) */}
-                  <Route path="/procurement" element={<Navigate to="/procurement/processes" replace />} />
+                  {/* PACC - Plan Anual de Compras y Contrataciones */}
+                  <Route path="/pacc" element={<Navigate to="/pacc/dashboard" replace />} />
                   <Route 
-                    path="/procurement/processes" 
+                    path="/pacc/dashboard" 
                     element={
-                      <ProtectedRoute requiredPermission="read:procurement_process">
-                        <ProcurementManagement />
+                      <ProtectedRoute requiredPermission="read:dashboard">
+                        <PACCDashboard />
                       </ProtectedRoute>
                     } 
                   />
                   <Route 
-                    path="/procurement/poa-linking" 
+                    path="/pacc/schedules" 
                     element={
-                      <ProtectedRoute requiredPermission="read:activity_procurement_link">
-                        <POAPACLinking />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/procurement/reports" 
-                    element={
-                      <ProtectedRoute requiredPermission="read:procurement_process">
-                        <PACReports />
+                      <ProtectedRoute requiredPermission="read:procurement">
+                        <PACCScheduleManagement />
                       </ProtectedRoute>
                     } 
                   />

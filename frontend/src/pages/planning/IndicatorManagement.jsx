@@ -33,9 +33,7 @@ import {
   LinearProgress,
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  Pagination,
-  Snackbar
+  AccordionDetails
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -46,14 +44,13 @@ import {
   TrendingUp as TrendingUpIcon,
   Assignment as AssignmentIcon,
   Timeline as TimelineIcon,
-  ExpandMore as ExpandMoreIcon,
-  Search as SearchIcon
+  ExpandMore as ExpandMoreIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import httpClient from '../../utils/api';
+import axios from 'axios';
 
 const IndicatorManagement = () => {
-  const { user, hasPermission } = useAuth();
+  const { user, token } = useAuth();
   const [indicators, setIndicators] = useState([]);
   const [levelOptions, setLevelOptions] = useState({
     strategicAxes: [],
@@ -64,12 +61,14 @@ const IndicatorManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
+
+  // Crear cliente API
+  const apiClient = axios.create({
+    baseURL: 'http://localhost:3001/api',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
   });
   
   // Dialog states
@@ -95,24 +94,10 @@ const IndicatorManagement = () => {
     measurementUnit: '',
     baseline: 0,
     annualTarget: 0,
-    reportingFrequency: 'QUARTERLY', // QUARTERLY or MONTHLY
     q1Target: 0,
     q2Target: 0,
     q3Target: 0,
     q4Target: 0,
-    // Monthly targets
-    jan_target: 0,
-    feb_target: 0,
-    mar_target: 0,
-    apr_target: 0,
-    may_target: 0,
-    jun_target: 0,
-    jul_target: 0,
-    aug_target: 0,
-    sep_target: 0,
-    oct_target: 0,
-    nov_target: 0,
-    dec_target: 0,
     level: '', // strategicAxis, objective, product, activity
     levelId: '',
     isActive: true
@@ -131,19 +116,6 @@ const IndicatorManagement = () => {
     loadIndicators();
     loadLevelOptions();
   }, [filters]);
-
-  // Snackbar functions
-  const showSnackbar = (message, severity = 'success') => {
-    setSnackbar({
-      open: true,
-      message,
-      severity
-    });
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar(prev => ({ ...prev, open: false }));
-  };
 
   const loadIndicators = async () => {
     try {
@@ -173,48 +145,46 @@ const IndicatorManagement = () => {
         }
       }
 
-      const response = await httpClient.get(`/indicators?${params.toString()}`);
+      const response = await apiClient.get(`/indicators?${params.toString()}`);
+      console.log('🔍 Debug loadIndicators response:', response.data);
       
-      // Usar la nueva estructura de respuesta de la API
-      if (response.data.success) {
-        const indicatorsData = response.data.data.indicators || [];
-        setIndicators(indicatorsData);
+      // La respuesta del backend tiene estructura: { success: true, data: {indicators: [...], pagination: {...}} }
+      const indicatorsData = response.data?.data?.indicators || [];
+      setIndicators(indicatorsData);
+      
+      // Calcular estadísticas
+      const totalIndicators = indicatorsData.length;
+      const typeStats = indicatorsData.reduce((acc, indicator) => {
+        acc[indicator.type] = (acc[indicator.type] || 0) + 1;
+        return acc;
+      }, { PRODUCT: 0, RESULT: 0 });
+      
+      const levelStats = indicatorsData.reduce((acc, indicator) => {
+        let level = 'Sin asignar';
+        if (indicator.strategicAxis) level = 'Eje Estratégico';
+        else if (indicator.objective) level = 'Objetivo';
+        else if (indicator.product) level = 'Producto';
+        else if (indicator.activity) level = 'Actividad';
         
-        // Calcular estadísticas
-        const totalIndicators = indicatorsData.length;
-        const typeStats = indicatorsData.reduce((acc, indicator) => {
-          acc[indicator.type] = (acc[indicator.type] || 0) + 1;
-          return acc;
-        }, { PRODUCT: 0, RESULT: 0 });
-        
-        const levelStats = indicatorsData.reduce((acc, indicator) => {
-          let level = 'Sin asignar';
-          if (indicator.strategicAxis) level = 'Eje Estratégico';
-          else if (indicator.objective) level = 'Objetivo';
-          else if (indicator.product) level = 'Producto';
-          else if (indicator.activity) level = 'Actividad';
-          
-          acc[level] = (acc[level] || 0) + 1;
-          return acc;
-        }, {});
-        
-        const avgProgress = totalIndicators > 0 
-          ? indicatorsData.reduce((sum, ind) => sum + (ind.currentProgress?.progressPercent || 0), 0) / totalIndicators
-          : 0;
+        acc[level] = (acc[level] || 0) + 1;
+        return acc;
+      }, {});
+      
+      const avgProgress = totalIndicators > 0 
+        ? indicatorsData.reduce((sum, ind) => sum + (ind.currentProgress?.progressPercent || 0), 0) / totalIndicators
+        : 0;
 
-        setStats({
-          total: totalIndicators,
-          byType: typeStats,
-          byLevel: levelStats,
-          avgProgress: Math.round(avgProgress * 100) / 100
-        });
-      } else {
-        setError(response.data.message || 'Error al cargar indicadores');
-      }
+      setStats({
+        total: totalIndicators,
+        byType: typeStats,
+        byLevel: levelStats,
+        avgProgress: Math.round(avgProgress * 100) / 100
+      });
 
     } catch (error) {
-      console.error('Error al cargar indicadores:', error);
+      console.error('❌ Error al cargar indicadores:', error);
       setError('Error al cargar los indicadores');
+      setIndicators([]); // Asegurar que siempre sea un array
     } finally {
       setLoading(false);
     }
@@ -222,15 +192,17 @@ const IndicatorManagement = () => {
 
   const loadLevelOptions = async () => {
     try {
-      const response = await httpClient.get(`/indicators/levels/options?year=${filters.year}`);
+      console.log('🔍 Cargando opciones de niveles...');
+      const response = await apiClient.get(`/indicators/levels/options?year=${filters.year}`);
+      console.log('📊 Respuesta de opciones:', response.data);
       
-      if (response.data.success) {
-        setLevelOptions(response.data.data || { strategicAxes: [], objectives: [], products: [], activities: [] });
-      } else {
-        console.error('Error al cargar opciones de niveles:', response.data.message);
-      }
+      // La respuesta puede tener diferentes estructuras
+      const optionsData = response.data?.data || response.data || { strategicAxes: [], objectives: [], products: [], activities: [] };
+      setLevelOptions(optionsData);
+      console.log('✅ Opciones de niveles cargadas');
     } catch (error) {
-      console.error('Error al cargar opciones de niveles:', error);
+      console.error('❌ Error al cargar opciones de niveles:', error);
+      setLevelOptions({ strategicAxes: [], objectives: [], products: [], activities: [] });
     }
   };
 
@@ -246,23 +218,10 @@ const IndicatorManagement = () => {
         measurementUnit: '',
         baseline: 0,
         annualTarget: 0,
-        reportingFrequency: 'QUARTERLY',
         q1Target: 0,
         q2Target: 0,
         q3Target: 0,
         q4Target: 0,
-        jan_target: 0,
-        feb_target: 0,
-        mar_target: 0,
-        apr_target: 0,
-        may_target: 0,
-        jun_target: 0,
-        jul_target: 0,
-        aug_target: 0,
-        sep_target: 0,
-        oct_target: 0,
-        nov_target: 0,
-        dec_target: 0,
         level: '',
         levelId: '',
         isActive: true
@@ -293,23 +252,10 @@ const IndicatorManagement = () => {
         measurementUnit: indicator.measurementUnit,
         baseline: indicator.baseline || 0,
         annualTarget: indicator.annualTarget,
-        reportingFrequency: indicator.reportingFrequency || 'QUARTERLY',
         q1Target: indicator.q1Target || 0,
         q2Target: indicator.q2Target || 0,
         q3Target: indicator.q3Target || 0,
         q4Target: indicator.q4Target || 0,
-        jan_target: indicator.jan_target || 0,
-        feb_target: indicator.feb_target || 0,
-        mar_target: indicator.mar_target || 0,
-        apr_target: indicator.apr_target || 0,
-        may_target: indicator.may_target || 0,
-        jun_target: indicator.jun_target || 0,
-        jul_target: indicator.jul_target || 0,
-        aug_target: indicator.aug_target || 0,
-        sep_target: indicator.sep_target || 0,
-        oct_target: indicator.oct_target || 0,
-        nov_target: indicator.nov_target || 0,
-        dec_target: indicator.dec_target || 0,
         level,
         levelId,
         isActive: indicator.isActive
@@ -338,23 +284,10 @@ const IndicatorManagement = () => {
         measurementUnit: formData.measurementUnit,
         baseline: parseFloat(formData.baseline) || 0,
         annualTarget: parseFloat(formData.annualTarget),
-        reportingFrequency: formData.reportingFrequency,
         q1Target: parseFloat(formData.q1Target) || 0,
         q2Target: parseFloat(formData.q2Target) || 0,
         q3Target: parseFloat(formData.q3Target) || 0,
         q4Target: parseFloat(formData.q4Target) || 0,
-        jan_target: parseFloat(formData.jan_target) || 0,
-        feb_target: parseFloat(formData.feb_target) || 0,
-        mar_target: parseFloat(formData.mar_target) || 0,
-        apr_target: parseFloat(formData.apr_target) || 0,
-        may_target: parseFloat(formData.may_target) || 0,
-        jun_target: parseFloat(formData.jun_target) || 0,
-        jul_target: parseFloat(formData.jul_target) || 0,
-        aug_target: parseFloat(formData.aug_target) || 0,
-        sep_target: parseFloat(formData.sep_target) || 0,
-        oct_target: parseFloat(formData.oct_target) || 0,
-        nov_target: parseFloat(formData.nov_target) || 0,
-        dec_target: parseFloat(formData.dec_target) || 0,
         isActive: formData.isActive
       };
 
@@ -376,23 +309,12 @@ const IndicatorManagement = () => {
         }
       }
 
-      let response;
       if (dialogMode === 'create') {
-        response = await httpClient.post('/indicators', submitData);
-        if (response.data.success) {
-          showSnackbar('Indicador creado exitosamente', 'success');
-        } else {
-          showSnackbar(response.data.message || 'Error al crear el indicador', 'error');
-          return;
-        }
+        await apiClient.post('/indicators', submitData);
+        setSuccess('Indicador creado exitosamente');
       } else if (dialogMode === 'edit') {
-        response = await httpClient.put(`/indicators/${selectedIndicator.id}`, submitData);
-        if (response.data.success) {
-          showSnackbar('Indicador actualizado exitosamente', 'success');
-        } else {
-          showSnackbar(response.data.message || 'Error al actualizar el indicador', 'error');
-          return;
-        }
+        await apiClient.put(`/indicators/${selectedIndicator.id}`, submitData);
+        setSuccess('Indicador actualizado exitosamente');
       }
 
       handleCloseDialog();
@@ -400,10 +322,7 @@ const IndicatorManagement = () => {
       
     } catch (error) {
       console.error('Error al guardar indicador:', error);
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.errors?.[0]?.msg || 
-                          'Error al guardar el indicador';
-      showSnackbar(errorMessage, 'error');
+      setError(error.response?.data?.message || 'Error al guardar el indicador');
     } finally {
       setLoading(false);
     }
@@ -416,18 +335,12 @@ const IndicatorManagement = () => {
 
     try {
       setLoading(true);
-      const response = await httpClient.delete(`/indicators/${indicator.id}`);
-      
-      if (response.data.success) {
-        showSnackbar('Indicador eliminado exitosamente', 'success');
-        loadIndicators();
-      } else {
-        showSnackbar(response.data.message || 'Error al eliminar el indicador', 'error');
-      }
+      await apiClient.delete(`/indicators/${indicator.id}`);
+      setSuccess('Indicador eliminado exitosamente');
+      loadIndicators();
     } catch (error) {
       console.error('Error al eliminar indicador:', error);
-      const errorMessage = error.response?.data?.message || 'Error al eliminar el indicador';
-      showSnackbar(errorMessage, 'error');
+      setError(error.response?.data?.message || 'Error al eliminar el indicador');
     } finally {
       setLoading(false);
     }
@@ -660,7 +573,6 @@ const IndicatorManagement = () => {
                 <TableCell>Tipo</TableCell>
                 <TableCell>Nivel</TableCell>
                 <TableCell>Unidad de Medida</TableCell>
-                <TableCell>Frecuencia</TableCell>
                 <TableCell>Meta Anual</TableCell>
                 <TableCell>Progreso</TableCell>
                 <TableCell>Estado</TableCell>
@@ -693,13 +605,6 @@ const IndicatorManagement = () => {
                     </Typography>
                   </TableCell>
                   <TableCell>{indicator.measurementUnit}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={indicator.reportingFrequency === 'QUARTERLY' ? 'Trimestral' : 'Mensual'}
-                      color={indicator.reportingFrequency === 'QUARTERLY' ? 'primary' : 'secondary'}
-                      size="small"
-                    />
-                  </TableCell>
                   <TableCell>{indicator.annualTarget}</TableCell>
                   <TableCell>
                     {indicator.currentProgress && (
@@ -748,7 +653,7 @@ const IndicatorManagement = () => {
               ))}
               {indicators.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={8} align="center">
                     <Typography variant="body2" color="text.secondary">
                       No se encontraron indicadores
                     </Typography>
@@ -836,21 +741,6 @@ const IndicatorManagement = () => {
 
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
-                <InputLabel>Frecuencia de Reporte</InputLabel>
-                <Select
-                  value={formData.reportingFrequency}
-                  onChange={(e) => setFormData({ ...formData, reportingFrequency: e.target.value })}
-                  label="Frecuencia de Reporte"
-                  disabled={dialogMode === 'view'}
-                >
-                  <MenuItem value="QUARTERLY">Trimestral</MenuItem>
-                  <MenuItem value="MONTHLY">Mensual</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
                 <InputLabel>Nivel de Vinculación</InputLabel>
                 <Select
                   value={formData.level}
@@ -913,196 +803,57 @@ const IndicatorManagement = () => {
 
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom>
-                {formData.reportingFrequency === 'QUARTERLY' ? 'Metas Trimestrales' : 'Metas Mensuales'}
+                Metas Trimestrales
               </Typography>
             </Grid>
 
-            {formData.reportingFrequency === 'QUARTERLY' ? (
-              <>
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    label="Meta Q1"
-                    type="number"
-                    value={formData.q1Target}
-                    onChange={(e) => setFormData({ ...formData, q1Target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                label="Meta Q1"
+                type="number"
+                value={formData.q1Target}
+                onChange={(e) => setFormData({ ...formData, q1Target: e.target.value })}
+                fullWidth
+                disabled={dialogMode === 'view'}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
 
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    label="Meta Q2"
-                    type="number"
-                    value={formData.q2Target}
-                    onChange={(e) => setFormData({ ...formData, q2Target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                label="Meta Q2"
+                type="number"
+                value={formData.q2Target}
+                onChange={(e) => setFormData({ ...formData, q2Target: e.target.value })}
+                fullWidth
+                disabled={dialogMode === 'view'}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
 
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    label="Meta Q3"
-                    type="number"
-                    value={formData.q3Target}
-                    onChange={(e) => setFormData({ ...formData, q3Target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                label="Meta Q3"
+                type="number"
+                value={formData.q3Target}
+                onChange={(e) => setFormData({ ...formData, q3Target: e.target.value })}
+                fullWidth
+                disabled={dialogMode === 'view'}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
 
-                <Grid item xs={12} md={3}>
-                  <TextField
-                    label="Meta Q4"
-                    type="number"
-                    value={formData.q4Target}
-                    onChange={(e) => setFormData({ ...formData, q4Target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-              </>
-            ) : (
-              <>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Enero"
-                    type="number"
-                    value={formData.jan_target}
-                    onChange={(e) => setFormData({ ...formData, jan_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Febrero"
-                    type="number"
-                    value={formData.feb_target}
-                    onChange={(e) => setFormData({ ...formData, feb_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Marzo"
-                    type="number"
-                    value={formData.mar_target}
-                    onChange={(e) => setFormData({ ...formData, mar_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Abril"
-                    type="number"
-                    value={formData.apr_target}
-                    onChange={(e) => setFormData({ ...formData, apr_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Mayo"
-                    type="number"
-                    value={formData.may_target}
-                    onChange={(e) => setFormData({ ...formData, may_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Junio"
-                    type="number"
-                    value={formData.jun_target}
-                    onChange={(e) => setFormData({ ...formData, jun_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Julio"
-                    type="number"
-                    value={formData.jul_target}
-                    onChange={(e) => setFormData({ ...formData, jul_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Agosto"
-                    type="number"
-                    value={formData.aug_target}
-                    onChange={(e) => setFormData({ ...formData, aug_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Septiembre"
-                    type="number"
-                    value={formData.sep_target}
-                    onChange={(e) => setFormData({ ...formData, sep_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Octubre"
-                    type="number"
-                    value={formData.oct_target}
-                    onChange={(e) => setFormData({ ...formData, oct_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Noviembre"
-                    type="number"
-                    value={formData.nov_target}
-                    onChange={(e) => setFormData({ ...formData, nov_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    label="Diciembre"
-                    type="number"
-                    value={formData.dec_target}
-                    onChange={(e) => setFormData({ ...formData, dec_target: e.target.value })}
-                    fullWidth
-                    disabled={dialogMode === 'view'}
-                    inputProps={{ min: 0, step: 0.01 }}
-                  />
-                </Grid>
-              </>
-            )}
+            <Grid item xs={12} md={3}>
+              <TextField
+                label="Meta Q4"
+                type="number"
+                value={formData.q4Target}
+                onChange={(e) => setFormData({ ...formData, q4Target: e.target.value })}
+                fullWidth
+                disabled={dialogMode === 'view'}
+                inputProps={{ min: 0, step: 0.01 }}
+              />
+            </Grid>
 
             {dialogMode !== 'view' && (
               <Grid item xs={12}>
@@ -1130,22 +881,6 @@ const IndicatorManagement = () => {
           )}
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar para notificaciones */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert 
-          onClose={handleCloseSnackbar} 
-          severity={snackbar.severity}
-          sx={{ width: '100%' }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

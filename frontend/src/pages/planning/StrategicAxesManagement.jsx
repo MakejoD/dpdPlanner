@@ -40,11 +40,9 @@ import {
   Download as DownloadIcon,
   Business as BusinessIcon,
   TrendingUp as TrendingUpIcon,
-  Assignment as AssignmentIcon,
-  Flag as FlagIcon
+  Assignment as AssignmentIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
-import { httpClient } from '../../utils/api';
 
 const StrategicAxesManagement = () => {
   const { user, token } = useAuth();
@@ -99,18 +97,33 @@ const StrategicAxesManagement = () => {
       if (filters.departmentId) params.append('departmentId', filters.departmentId);
       if (filters.isActive !== null) params.append('isActive', filters.isActive);
       
-      const response = await httpClient.get(`/strategic-axes?${params}`);
-      const axesData = response.data.data || [];
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3001/api/strategic-axes?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error al cargar ejes estratégicos: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Respuesta de ejes estratégicos en StrategicAxesManagement:', data);
+      
+      // Handle both array and object with data property
+      const axesData = Array.isArray(data) ? data : (data.data || []);
       setStrategicAxes(axesData);
       
       // Calculate statistics
-      const total = Array.isArray(axesData) ? axesData.length : 0;
-      const active = Array.isArray(axesData) ? axesData.filter(axis => axis.isActive).length : 0;
-      const byDepartment = Array.isArray(axesData) ? axesData.reduce((acc, axis) => {
+      const total = axesData.length;
+      const active = axesData.filter(axis => axis.isActive).length;
+      const byDepartment = axesData.reduce((acc, axis) => {
         const deptName = axis.department?.name || 'Sin departamento';
         acc[deptName] = (acc[deptName] || 0) + 1;
         return acc;
-      }, {}) : {};
+      }, {});
       
       setStats({ total, active, byDepartment });
     } catch (error) {
@@ -123,9 +136,20 @@ const StrategicAxesManagement = () => {
 
   const loadDepartments = async () => {
     try {
-      const response = await httpClient.get('/departments');
-      const departmentsData = response.data.data || [];
-      setDepartments(departmentsData);
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:3001/api/departments', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Respuesta de departamentos:', data);
+        const deptData = Array.isArray(data) ? data : (data.data || []);
+        setDepartments(deptData);
+      }
     } catch (error) {
       console.error('Error loading departments:', error);
     }
@@ -190,13 +214,38 @@ const StrategicAxesManagement = () => {
         departmentId: formData.departmentId || null
       };
 
-      let response;
       if (dialogMode === 'create') {
-        response = await httpClient.post('/strategic-axes', submitData);
-        setSuccess(response.data.message || 'Eje estratégico creado exitosamente');
+        const token = localStorage.getItem('token');
+        const response = await fetch('http://localhost:3001/api/strategic-axes', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(submitData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al crear el eje estratégico');
+        }
+
+        setSuccess('Eje estratégico creado exitosamente');
       } else if (dialogMode === 'edit') {
-        response = await httpClient.put(`/strategic-axes/${selectedAxis.id}`, submitData);
-        setSuccess(response.data.message || 'Eje estratégico actualizado exitosamente');
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:3001/api/strategic-axes/${selectedAxis.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(submitData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al actualizar el eje estratégico');
+        }
+
+        setSuccess('Eje estratégico actualizado exitosamente');
       }
 
       handleCloseDialog();
@@ -213,8 +262,20 @@ const StrategicAxesManagement = () => {
     }
 
     try {
-      const response = await httpClient.delete(`/strategic-axes/${axis.id}`);
-      setSuccess(response.data.message || 'Eje estratégico eliminado exitosamente');
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:3001/api/strategic-axes/${axis.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar el eje estratégico');
+      }
+
+      setSuccess('Eje estratégico eliminado exitosamente');
       loadStrategicAxes();
     } catch (error) {
       console.error('Error deleting strategic axis:', error);
@@ -257,7 +318,7 @@ const StrategicAxesManagement = () => {
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1" gutterBottom display="flex" alignItems="center">
-          <FlagIcon sx={{ mr: 2, color: 'primary.main' }} />
+          <BusinessIcon sx={{ mr: 2, color: 'primary.main' }} />
           Gestión de Ejes Estratégicos
         </Typography>
         <Typography variant="body1" color="text.secondary">
@@ -391,7 +452,7 @@ const StrategicAxesManagement = () => {
                 onChange={(e) => setFilters(prev => ({ ...prev, departmentId: e.target.value }))}
               >
                 <MenuItem value="">Todos</MenuItem>
-                {(departments || []).map((dept) => (
+                {departments.map((dept) => (
                   <MenuItem key={dept.id} value={dept.id}>
                     {dept.name} ({dept.code})
                   </MenuItem>
@@ -593,7 +654,7 @@ const StrategicAxesManagement = () => {
                   disabled={dialogMode === 'view'}
                 >
                   <MenuItem value="">Sin asignar</MenuItem>
-                  {(departments || []).map((dept) => (
+                  {departments.map((dept) => (
                     <MenuItem key={dept.id} value={dept.id}>
                       {dept.name} ({dept.code})
                     </MenuItem>

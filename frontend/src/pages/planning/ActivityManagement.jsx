@@ -55,7 +55,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { es } from 'date-fns/locale';
 import { useAuth } from '../../contexts/AuthContext';
-import { httpClient } from '../../utils/api';
+import axios from 'axios';
 
 const ActivityManagement = () => {
   const { user, token } = useAuth();
@@ -109,8 +109,29 @@ const ActivityManagement = () => {
     withIndicators: 0
   });
 
-  // Snackbar state
-  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const apiClient = axios.create({
+    baseURL: 'http://localhost:3001/api',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  // Agregar interceptor para debugging
+  apiClient.interceptors.response.use(
+    (response) => {
+      if (response.config.url?.includes('/users')) {
+        console.log(`✅ Usuarios cargados: ${response.data.users?.length || 0}`);
+      }
+      return response;
+    },
+    (error) => {
+      if (error.config?.url?.includes('/users')) {
+        console.error(`❌ Error cargando usuarios:`, error.response?.data);
+      }
+      return Promise.reject(error);
+    }
+  );
 
   // Load data
   useEffect(() => {
@@ -131,25 +152,19 @@ const ActivityManagement = () => {
       if (filters.search) params.append('search', filters.search);
       if (filters.isActive !== null) params.append('isActive', filters.isActive);
 
-      const response = await httpClient.get(`/activities?${params.toString()}`);
+      const response = await apiClient.get(`/activities?${params.toString()}`);
+      console.log('🔍 Debug loadActivities response:', response.data);
       
-      console.log('🔍 Debug loadActivities response:', {
-        success: response.data.success,
-        message: response.data.message,
-        hasData: !!response.data.data,
-        hasActivities: !!response.data.data?.activities
-      });
-      
-      if (response.data.success) {
-        const activitiesData = response.data.data.activities || [];
-        console.log('✅ Actividades cargadas exitosamente:', activitiesData.length);
-        setActivities(activitiesData);
+      // La respuesta del backend tiene estructura: { data: [...], pagination: {...} }
+      if (response.data && response.data.data) {
+        setActivities(response.data.data);
         
         // Calcular estadísticas
-        const total = activitiesData.length || 0;
-        const active = activitiesData.filter(a => a.isActive).length || 0;
-        const withAssignments = activitiesData.filter(a => a.assignments?.length > 0).length || 0;
-        const withIndicators = activitiesData.filter(a => a._count?.indicators > 0).length || 0;
+        const activitiesData = response.data.data;
+        const total = activitiesData.length;
+        const active = activitiesData.filter(a => a.isActive).length;
+        const withAssignments = activitiesData.filter(a => a.assignments?.length > 0).length;
+        const withIndicators = activitiesData.filter(a => a._count?.indicators > 0).length;
 
         setStats({
           total,
@@ -157,15 +172,16 @@ const ActivityManagement = () => {
           withAssignments,
           withIndicators
         });
+        
+        console.log('✅ Actividades cargadas exitosamente:', total);
       } else {
-        console.error('❌ Error en respuesta de actividades:', response.data);
-        throw new Error(response.data.message || 'Error al cargar actividades');
+        console.error('❌ Estructura de respuesta inesperada:', response.data);
+        throw new Error('Estructura de respuesta inesperada');
       }
 
     } catch (error) {
-      console.error('Error al cargar actividades:', error);
+      console.error('❌ Error al cargar actividades:', error);
       setError('Error al cargar las actividades');
-      setSnackbar({ open: true, message: 'Error al cargar las actividades', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -173,35 +189,42 @@ const ActivityManagement = () => {
 
   const loadProducts = async () => {
     try {
-      const response = await httpClient.get('/products?isActive=true');
-      if (response.data.success) {
-        setProducts(response.data.data || []);
-      }
+      console.log('🔍 Cargando productos...');
+      const response = await apiClient.get('/products?isActive=true');
+      console.log('📊 Respuesta de productos:', response.data);
+      
+      // La respuesta tiene estructura: {success: true, data: [...]}
+      const productsData = response.data?.data || [];
+      
+      setProducts(productsData);
+      console.log('✅ Productos cargados exitosamente:', productsData.length);
     } catch (error) {
-      console.error('Error al cargar productos:', error);
+      console.error('❌ Error al cargar productos:', error);
+      setProducts([]); // Asegurar que siempre sea un array
     }
   };
 
   const loadUsers = async () => {
     try {
       console.log('🔍 Cargando usuarios...');
-      const response = await httpClient.get('/users?isActive=true');
+      const response = await apiClient.get('/users?isActive=true');
       console.log('📊 Respuesta de usuarios:', response.data);
       
-      // La estructura correcta es response.data.data (array directo), no response.data.users
-      const usersArray = response.data.data || [];
-      console.log('👥 Total de usuarios encontrados:', usersArray.length);
+      // La respuesta tiene estructura: {success: true, data: [...], pagination: {...}}
+      const usersData = response.data?.data || [];
       
-      setUsers(usersArray);
+      console.log('👥 Total de usuarios encontrados:', usersData.length);
+      setUsers(usersData);
       
-      if (usersArray.length > 0) {
-        console.log('✅ Usuarios cargados exitosamente:', usersArray.map(u => `${u.firstName} ${u.lastName}`));
+      if (usersData.length > 0) {
+        console.log('✅ Usuarios cargados exitosamente:', usersData.map(u => `${u.firstName} ${u.lastName}`));
       } else {
         console.log('⚠️ No se encontraron usuarios');
       }
     } catch (error) {
       console.error('❌ Error al cargar usuarios:', error);
       setError('Error al cargar la lista de usuarios');
+      setUsers([]); // Asegurar que siempre sea un array
     }
   };
 
@@ -255,10 +278,10 @@ const ActivityManagement = () => {
       };
 
       if (dialogMode === 'create') {
-        await httpClient.post('/activities', submitData);
+        await apiClient.post('/activities', submitData);
         setSuccess('Actividad creada exitosamente');
       } else if (dialogMode === 'edit') {
-        await httpClient.put(`/activities/${selectedActivity.id}`, submitData);
+        await apiClient.put(`/activities/${selectedActivity.id}`, submitData);
         setSuccess('Actividad actualizada exitosamente');
       }
 
@@ -280,7 +303,7 @@ const ActivityManagement = () => {
 
     try {
       setLoading(true);
-      await httpClient.delete(`/activities/${activity.id}`);
+      await apiClient.delete(`/activities/${activity.id}`);
       setSuccess('Actividad eliminada exitosamente');
       loadActivities();
     } catch (error) {
@@ -310,7 +333,7 @@ const ActivityManagement = () => {
     try {
       setLoading(true);
       
-      await httpClient.post(`/activities/${selectedActivityForAssignment.id}/assign`, assignmentData);
+      await apiClient.post(`/activities/${selectedActivityForAssignment.id}/assign`, assignmentData);
       setSuccess('Usuario asignado exitosamente');
       setOpenAssignmentDialog(false);
       loadActivities();
@@ -330,7 +353,7 @@ const ActivityManagement = () => {
 
     try {
       setLoading(true);
-      await httpClient.delete(`/activities/${activityId}/assignments/${userId}`);
+      await apiClient.delete(`/activities/${activityId}/assignments/${userId}`);
       setSuccess('Asignación removida exitosamente');
       loadActivities();
     } catch (error) {

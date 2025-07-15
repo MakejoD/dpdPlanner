@@ -21,7 +21,7 @@ const authReducer = (state, action) => {
         token: action.payload.token,
         isAuthenticated: true,
         loading: false,
-        permissions: action.payload.user?.permissions || []
+        permissions: action.payload.user.permissions || []
       }
     case 'AUTH_ERROR':
       localStorage.removeItem('token')
@@ -79,10 +79,15 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true })
       
-      const response = await httpClient.post('/auth/login', { email, password })
-
-      // Con el fix del httpClient, los datos están en response.data
-      const data = response.data
+      console.log('Attempting login with:', { email, apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3001/api' })
+      
+      const data = await httpClient.post('/auth/login', { email, password })
+      
+      // Verificar que la respuesta contiene los datos necesarios
+      if (!data || !data.token || !data.user) {
+        console.error('Invalid login response:', data)
+        throw new Error('Respuesta de login inválida del servidor')
+      }
 
       // Guardar token en localStorage
       localStorage.setItem('token', data.token)
@@ -102,7 +107,16 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Login error:', error)
       dispatch({ type: 'AUTH_ERROR' })
-      const errorMessage = error.message || 'Error al iniciar sesión'
+      
+      // Mejorar el manejo de mensajes de error
+      let errorMessage = 'Error al iniciar sesión'
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        errorMessage = 'No se puede conectar al servidor. Verifique que esté ejecutándose.'
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       toast.error(errorMessage)
       return { success: false, error: errorMessage }
     } finally {
@@ -137,7 +151,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     // Verificar si el usuario tiene el permiso específico
-    return (state.permissions || []).some(
+    return state.permissions.some(
       permission => permission.action === action && permission.resource === resource
     )
   }
@@ -155,25 +169,22 @@ export const AuthProvider = ({ children }) => {
         return
       }
 
-      const response = await httpClient.get('/auth/me')
+      const response = await httpClient.get(`/users/${state.user?.id}/profile`)
 
-      // El endpoint /auth/me devuelve directamente userData, no envuelto
-      const userData = response.data
+      if (!response.ok) {
+        throw new Error('Error al obtener el perfil del usuario')
+      }
+
+      const userData = await response.json()
       
       dispatch({
         type: 'UPDATE_USER',
         payload: userData
       })
 
-      return userData
-
     } catch (error) {
       console.error('Error al obtener perfil:', error)
-      // Si es error 401, el token es inválido
-      if (error.message.includes('401') || error.message.includes('Token inválido')) {
-        dispatch({ type: 'AUTH_ERROR' })
-      }
-      return null
+      dispatch({ type: 'AUTH_ERROR' })
     }
   }
 
@@ -187,12 +198,11 @@ export const AuthProvider = ({ children }) => {
 
       const response = await httpClient.post('/auth/refresh')
 
-      // Con el fix del httpClient, verificamos response.data.message (no success)
-      if (!response.data.token) {
+      if (!response.ok) {
         throw new Error('Error al renovar el token')
       }
 
-      const data = response.data
+      const data = await response.json()
       localStorage.setItem('token', data.token)
 
       dispatch({
@@ -218,38 +228,9 @@ export const AuthProvider = ({ children }) => {
         return
       }
 
-      try {
-        dispatch({ type: 'SET_LOADING', payload: true })
-        
-        // Verificar token con el servidor y obtener datos del usuario
-        const response = await httpClient.get('/auth/me')
-        
-        if (response.data && response.data.id) {
-          // El token es válido, restaurar sesión
-          dispatch({
-            type: 'AUTH_SUCCESS',
-            payload: {
-              user: response.data,
-              token: token
-            }
-          })
-          
-          console.log('✅ Sesión restaurada automáticamente para:', response.data.email)
-          // No mostrar toast para evitar spam en cada recarga
-          // toast.success('Sesión restaurada automáticamente')
-        } else {
-          // Token inválido
-          throw new Error('Token inválido')
-        }
-        
-      } catch (error) {
-        console.error('❌ Error verificando token:', error)
-        // Token inválido o expirado, limpiar sesión
-        localStorage.removeItem('token')
-        dispatch({ type: 'AUTH_ERROR' })
-      } finally {
-        dispatch({ type: 'SET_LOADING', payload: false })
-      }
+      // Por ahora solo verificamos que existe el token
+      // TODO: Implementar verificación completa cuando el backend esté listo
+      dispatch({ type: 'SET_LOADING', payload: false })
     }
 
     verifyToken()

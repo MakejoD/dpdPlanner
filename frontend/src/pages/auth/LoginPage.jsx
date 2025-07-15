@@ -39,34 +39,34 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false)
   const [showQuickLogin, setShowQuickLogin] = useState(false)
 
-  // Datos de usuarios de prueba
+  // Datos de usuarios de prueba actualizados según el backend
   const quickLoginUsers = [
     {
       name: 'Administrador del Sistema',
       email: 'admin@poa.gov',
       password: 'admin123',
-      role: 'Administrador',
+      role: 'ADMIN',
       icon: <SupervisorIcon />,
       color: '#d32f2f',
       description: 'Acceso completo al sistema'
     },
     {
-      name: 'Carlos Ramírez Vega',
-      email: 'planificacion@poa.gov',
-      password: 'planificacion123',
-      role: 'Director de Planificación',
+      name: 'Director de Planificación',
+      email: 'director.planificacion@poa.gov',
+      password: 'director123',
+      role: 'DIRECTOR',
       icon: <PersonIcon />,
       color: '#1976d2',
       description: 'Formulación y seguimiento del POA'
     },
     {
-      name: 'Juan Pérez García',
-      email: 'juan.perez@poa.gov',
-      password: '123456',
-      role: 'Técnico Registrador',
+      name: 'Director de Compras',
+      email: 'director.compras@poa.gov',
+      password: 'compras123',
+      role: 'DIRECTOR',
       icon: <EngineeringIcon />,
       color: '#388e3c',
-      description: 'Registro de avances y actividades'
+      description: 'Gestión de contrataciones y compras'
     }
   ]
 

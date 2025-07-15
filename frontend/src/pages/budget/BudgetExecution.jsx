@@ -116,8 +116,10 @@ const BudgetExecution = () => {
 
       const response = await httpClient.get(`/budget-execution?${queryParams.toString()}`);
       
-      if (response.data.success) {
+      if (response && response.data && response.data.success) {
         setBudgetExecutions(response.data.data || []);
+      } else {
+        setBudgetExecutions([]);
       }
     } catch (error) {
       console.error('Error al cargar ejecuciones presupuestarias:', error);

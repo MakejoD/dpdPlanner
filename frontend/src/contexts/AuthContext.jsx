@@ -228,9 +228,30 @@ export const AuthProvider = ({ children }) => {
         return
       }
 
-      // Por ahora solo verificamos que existe el token
-      // TODO: Implementar verificación completa cuando el backend esté listo
-      dispatch({ type: 'SET_LOADING', payload: false })
+      try {
+        dispatch({ type: 'SET_LOADING', payload: true })
+        
+        // Verificar la validez del token obteniendo el perfil del usuario
+        const userData = await httpClient.get('/auth/me')
+        
+        if (userData) {
+          dispatch({
+            type: 'AUTH_SUCCESS',
+            payload: {
+              user: userData,
+              token: token
+            }
+          })
+        } else {
+          throw new Error('Token inválido')
+        }
+      } catch (error) {
+        console.error('Error verificando token:', error)
+        localStorage.removeItem('token')
+        dispatch({ type: 'AUTH_ERROR' })
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
+      }
     }
 
     verifyToken()

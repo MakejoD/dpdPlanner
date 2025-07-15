@@ -9,7 +9,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "setup": "npm install && npm run db:generate && npm run db:push && npm run db:seed",
+    "setup": "npm install && npm run db:generate && npm run db:push && npm run system:init",
+    "setup-complete": "npm install && npm run db:generate && npm run db:push && node setup-system-final.js",
+    "setup-quick": "npm install && npm run db:generate && npm run db:push && node quick-setup.js",
+    "system:init": "node setup-system-final.js",
+    "system:reset": "rm -f dev.db && npm run db:push && npm run system:init",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",

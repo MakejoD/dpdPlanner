@@ -185,7 +185,6 @@ router.get('/pending',
           skip,
           take: parseInt(limit),
           orderBy: [
-            { submittedAt: 'asc' },
             { createdAt: 'asc' }
           ]
         }),

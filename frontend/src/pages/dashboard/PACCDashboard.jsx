@@ -92,10 +92,10 @@ const PACCDashboard = () => {
       const criticalAlerts = activeAlerts.filter(a => a.severity === 'CRITICA');
       const highAlerts = activeAlerts.filter(a => a.severity === 'ALTA');
 
-      const totalBudget = processes.reduce((sum, p) => sum + p.estimatedAmount, 0);
-      const executedBudget = processes
+      const totalBudget = Array.isArray(processes) ? processes.reduce((sum, p) => sum + (p.estimatedAmount || 0), 0) : 0;
+      const executedBudget = Array.isArray(processes) ? processes
         .filter(p => p.status === 'EJECUTADO')
-        .reduce((sum, p) => sum + p.estimatedAmount, 0);
+        .reduce((sum, p) => sum + (p.estimatedAmount || 0), 0) : 0;
 
       const criticalPathSchedules = schedules.filter(s => s.criticalPath).length;
 

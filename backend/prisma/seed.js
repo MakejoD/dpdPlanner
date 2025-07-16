@@ -199,8 +199,7 @@ async function main() {
       data: areaDirectorPermissions.map(permission => ({
         roleId: areaDirectorRole.id,
         permissionId: permission.id
-      })),
-      skipDuplicates: true
+      }))
     });
 
     // Técnico Registrador: crear y actualizar reportes propios
@@ -213,8 +212,7 @@ async function main() {
       data: technicianPermissions.map(permission => ({
         roleId: technicalRole.id,
         permissionId: permission.id
-      })),
-      skipDuplicates: true
+      }))
     });
 
     // Auditor: solo lectura de todo
@@ -224,8 +222,7 @@ async function main() {
       data: auditorPermissions.map(permission => ({
         roleId: auditorRole.id,
         permissionId: permission.id
-      })),
-      skipDuplicates: true
+      }))
     });
 
     // 4. Crear departamentos ejemplo

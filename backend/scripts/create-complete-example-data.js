@@ -31,6 +31,7 @@ async function cleanExistingData() {
   console.log('🧹 Limpiando datos existentes...');
   
   // Limpiar en orden de dependencias
+  await prisma.notification.deleteMany();
   await prisma.paccAlert.deleteMany();
   await prisma.paccCompliance.deleteMany();
   await prisma.paccSchedule.deleteMany();
@@ -199,7 +200,17 @@ async function createPermissions() {
     { action: 'read', resource: 'user' },
     { action: 'update', resource: 'user' },
     { action: 'delete', resource: 'user' },
+    { action: 'create', resource: 'role' },
+    { action: 'read', resource: 'role' },
+    { action: 'update', resource: 'role' },
+    { action: 'delete', resource: 'role' },
     { action: 'manage', resource: 'role' },
+    
+    // Departamentos
+    { action: 'create', resource: 'department' },
+    { action: 'read', resource: 'department' },
+    { action: 'update', resource: 'department' },
+    { action: 'delete', resource: 'department' },
     
     // POA
     { action: 'create', resource: 'strategic_axis' },
@@ -711,7 +722,7 @@ async function createIndicators(strategicAxes, objectives, products, activities)
   console.log('📊 Creando indicadores...');
   
   const indicators = [
-    // Indicadores a nivel de Eje Estratégico
+    // Indicadores a nivel de Eje Estratégico (trimestral)
     {
       name: 'Porcentaje de cumplimiento del eje de fortalecimiento institucional',
       description: 'Mide el avance general del eje estratégico',
@@ -719,6 +730,7 @@ async function createIndicators(strategicAxes, objectives, products, activities)
       measurementUnit: 'Porcentaje',
       baseline: 0,
       annualTarget: 90,
+      reportingFrequency: 'trimestral',
       q1Target: 20,
       q2Target: 45,
       q3Target: 70,
@@ -726,7 +738,7 @@ async function createIndicators(strategicAxes, objectives, products, activities)
       strategicAxisId: strategicAxes.find(a => a.code === 'EE001').id
     },
     
-    // Indicadores a nivel de Objetivo
+    // Indicadores a nivel de Objetivo (trimestral)
     {
       name: 'Sistema POA-PACC-Presupuesto implementado',
       description: 'Porcentaje de implementación del sistema integrado',
@@ -734,6 +746,7 @@ async function createIndicators(strategicAxes, objectives, products, activities)
       measurementUnit: 'Porcentaje',
       baseline: 0,
       annualTarget: 100,
+      reportingFrequency: 'trimestral',
       q1Target: 25,
       q2Target: 60,
       q3Target: 85,
@@ -741,7 +754,7 @@ async function createIndicators(strategicAxes, objectives, products, activities)
       objectiveId: objectives.find(o => o.code === 'OBJ001').id
     },
     
-    // Indicadores a nivel de Producto
+    // Indicadores a nivel de Producto (trimestral)
     {
       name: 'Módulos del sistema desarrollados',
       description: 'Cantidad de módulos funcionales completados',
@@ -749,6 +762,7 @@ async function createIndicators(strategicAxes, objectives, products, activities)
       measurementUnit: 'Número',
       baseline: 0,
       annualTarget: 3,
+      reportingFrequency: 'trimestral',
       q1Target: 1,
       q2Target: 2,
       q3Target: 3,
@@ -756,7 +770,7 @@ async function createIndicators(strategicAxes, objectives, products, activities)
       productId: products.find(p => p.code === 'PROD001').id
     },
     
-    // Indicadores a nivel de Actividad
+    // Indicadores a nivel de Actividad (trimestral)
     {
       name: 'Avance del desarrollo del módulo POA',
       description: 'Porcentaje de completitud del módulo de planificación',
@@ -764,6 +778,7 @@ async function createIndicators(strategicAxes, objectives, products, activities)
       measurementUnit: 'Porcentaje',
       baseline: 0,
       annualTarget: 100,
+      reportingFrequency: 'trimestral',
       q1Target: 100,
       q2Target: 100,
       q3Target: 100,
@@ -777,37 +792,84 @@ async function createIndicators(strategicAxes, objectives, products, activities)
       measurementUnit: 'Porcentaje',
       baseline: 0,
       annualTarget: 100,
+      reportingFrequency: 'trimestral',
       q1Target: 0,
       q2Target: 100,
       q3Target: 100,
       q4Target: 100,
       activityId: activities.find(a => a.code === 'ACT002').id
     },
+    
+    // Indicador mensual para capacitación
     {
       name: 'Personal capacitado en POA',
-      description: 'Número de funcionarios capacitados en gestión POA',
+      description: 'Número de funcionarios capacitados en gestión POA por mes',
       type: 'PRODUCT',
       measurementUnit: 'Número',
       baseline: 0,
       annualTarget: 15,
-      q1Target: 0,
-      q2Target: 15,
-      q3Target: 15,
-      q4Target: 15,
+      reportingFrequency: 'mensual',
+      janTarget: 0,
+      febTarget: 0,
+      marTarget: 2,
+      aprTarget: 3,
+      mayTarget: 4,
+      junTarget: 6,
+      julTarget: 0,
+      augTarget: 0,
+      sepTarget: 0,
+      octTarget: 0,
+      novTarget: 0,
+      decTarget: 0,
       activityId: activities.find(a => a.code === 'ACT006').id
     },
+    
+    // Indicador mensual para ejecución presupuestaria
     {
-      name: 'Ejecución presupuestaria',
-      description: 'Porcentaje de ejecución del presupuesto asignado',
+      name: 'Ejecución presupuestaria mensual',
+      description: 'Porcentaje de ejecución del presupuesto por mes',
       type: 'RESULT',
       measurementUnit: 'Porcentaje',
       baseline: 75,
       annualTarget: 95,
-      q1Target: 20,
-      q2Target: 45,
-      q3Target: 70,
-      q4Target: 95,
+      reportingFrequency: 'mensual',
+      janTarget: 8,
+      febTarget: 16,
+      marTarget: 24,
+      aprTarget: 32,
+      mayTarget: 40,
+      junTarget: 48,
+      julTarget: 56,
+      augTarget: 64,
+      sepTarget: 72,
+      octTarget: 80,
+      novTarget: 88,
+      decTarget: 95,
       activityId: activities.find(a => a.code === 'ACT008').id
+    },
+    
+    // Indicador mensual para procesos PACC
+    {
+      name: 'Procesos PACC completados',
+      description: 'Número de procesos de contratación finalizados mensualmente',
+      type: 'PRODUCT',
+      measurementUnit: 'Número',
+      baseline: 0,
+      annualTarget: 12,
+      reportingFrequency: 'mensual',
+      janTarget: 1,
+      febTarget: 1,
+      marTarget: 1,
+      aprTarget: 1,
+      mayTarget: 1,
+      junTarget: 1,
+      julTarget: 1,
+      augTarget: 1,
+      sepTarget: 1,
+      octTarget: 1,
+      novTarget: 1,
+      decTarget: 1,
+      activityId: activities.find(a => a.code === 'ACT009').id
     }
   ];
   

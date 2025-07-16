@@ -43,6 +43,9 @@ model User {
   paccReportsGenerated  PaccReport[]         @relation("GeneratedBy")
   paccReportsApproved   PaccReport[]         @relation("ApprovedBy")
   
+  // Notification relations
+  notifications         Notification[]
+  
   @@map("users")
 }
 
@@ -216,10 +219,30 @@ model Indicator {
   measurementUnit   String
   baseline          Float?        @default(0)
   annualTarget      Float
+  
+  // Periodicidad del indicador
+  reportingFrequency String @default("trimestral") // trimestral, mensual
+  
+  // Metas trimestrales (para compatibilidad hacia atrás)
   q1Target          Float?        @default(0)
   q2Target          Float?        @default(0)
   q3Target          Float?        @default(0)
   q4Target          Float?        @default(0)
+  
+  // Metas mensuales (solo para indicadores mensuales)
+  janTarget         Float?        @default(0)
+  febTarget         Float?        @default(0)
+  marTarget         Float?        @default(0)
+  aprTarget         Float?        @default(0)
+  mayTarget         Float?        @default(0)
+  junTarget         Float?        @default(0)
+  julTarget         Float?        @default(0)
+  augTarget         Float?        @default(0)
+  sepTarget         Float?        @default(0)
+  octTarget         Float?        @default(0)
+  novTarget         Float?        @default(0)
+  decTarget         Float?        @default(0)
+  
   isActive          Boolean       @default(true)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -728,3 +751,26 @@ model PaccReport {
 // ProcurementStatus: PLANIFICADO, EN_PROCESO, ADJUDICADO, EJECUTADO, CANCELADO
 // BudgetType: FUNCIONAMIENTO, INVERSION, TRANSFERENCIAS, SERVICIO_DEUDA
 // ComplianceStatus: EN_CUMPLIMIENTO, EN_RIESGO, INCUMPLIMIENTO
+
+// ========== NOTIFICATION SYSTEM MODELS ==========
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, WARNING, ERROR, SUCCESS
+  priority  String   @default("MEDIUM") // LOW, MEDIUM, HIGH, URGENT
+  isRead    Boolean  @default(false)
+  data      String?  // JSON string for additional data
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+// NotificationType: INFO, WARNING, ERROR, SUCCESS
+// NotificationPriority: LOW, MEDIUM, HIGH, URGENT

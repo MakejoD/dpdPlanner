@@ -41,11 +41,17 @@ import {
   BarChart as BarChartIcon,
   ShoppingCart as ShoppingCartIcon,
   Schedule as ScheduleIcon,
-  CheckCircle as CheckCircleIcon
+  CheckCircle as CheckCircleIcon,
+  GpsFixed as TargetIcon,
+  Analytics as AnalyticsIcon,
+  ListAlt as ListAltIcon,
+  Inventory as InventoryIcon,
+  Work as WorkOutlineIcon
 } from '@mui/icons-material'
 
 import { useAuth } from '../../contexts/AuthContext'
 import ConnectionStatus from '../common/ConnectionStatus'
+import NotificationCenter from '../notifications/NotificationCenter'
 
 const drawerWidth = 280
 
@@ -115,13 +121,13 @@ const DashboardLayout = ({ children }) => {
         },
         {
           title: 'Objetivos',
-          icon: <AssignmentIcon />,
+          icon: <TargetIcon />,
           path: '/planning/objectives',
           permission: 'read:objective'
         },
         {
           title: 'Productos/Servicios',
-          icon: <BarChartIcon />,
+          icon: <InventoryIcon />,
           path: '/planning/products',
           permission: 'read:product'
         },
@@ -133,7 +139,7 @@ const DashboardLayout = ({ children }) => {
         },
         {
           title: 'Indicadores',
-          icon: <TrendingUpIcon />,
+          icon: <TimelineIcon />,
           path: '/planning/indicators',
           permission: 'read:indicator'
         }
@@ -141,14 +147,14 @@ const DashboardLayout = ({ children }) => {
     },
     {
       title: 'Seguimiento',
-      icon: <TrendingUpIcon />,
+      icon: <AnalyticsIcon />,
       expandable: true,
       key: 'tracking',
       permission: 'read:progress_report',
       children: [
         {
           title: 'Informes de Avances',
-          icon: <AssignmentIcon />,
+          icon: <ListAltIcon />,
           path: '/tracking/progress',
           permission: 'read:progress_report'
         },
@@ -160,7 +166,7 @@ const DashboardLayout = ({ children }) => {
         },
         {
           title: 'Indicadores',
-          icon: <BarChartIcon />,
+          icon: <TrendingUpIcon />,
           path: '/tracking/indicators',
           permission: 'read:indicator'
         }
@@ -175,7 +181,7 @@ const DashboardLayout = ({ children }) => {
       children: [
         {
           title: 'Dashboard PACC',
-          icon: <DashboardIcon />,
+          icon: <WorkOutlineIcon />,
           path: '/pacc/dashboard',
           permission: 'read:dashboard'
         },
@@ -443,6 +449,9 @@ const DashboardLayout = ({ children }) => {
               sx={{ mr: 2, display: { xs: 'none', sm: 'flex' } }}
             />
             
+            {/* Centro de notificaciones */}
+            <NotificationCenter sx={{ mr: 1 }} />
+            
             <IconButton
               size="large"
               aria-label="account menu"
@@ -540,7 +549,7 @@ const DashboardLayout = ({ children }) => {
         }}
       >
         <Toolbar /> {/* Spacer for AppBar */}
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: { xs: 1, sm: 1.5, md: 2 } }}>
           <ConnectionStatus />
           {children}
         </Box>

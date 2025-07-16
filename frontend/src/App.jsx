@@ -6,6 +6,7 @@ import { useAuth } from './contexts/AuthContext'
 import LoadingScreen from './components/common/LoadingScreen'
 import LoginPage from './pages/auth/LoginPage'
 import DashboardLayout from './components/layout/DashboardLayout'
+import { NotificationQueue } from './components/notifications/NotificationToast'
 
 // Pages
 import Dashboard from './pages/dashboard/Dashboard'
@@ -68,6 +69,9 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sistema de notificaciones globales */}
+      <NotificationQueue />
+      
       <Routes>
         {/* Rutas públicas */}
         <Route 

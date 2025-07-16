@@ -94,10 +94,25 @@ const IndicatorManagement = () => {
     measurementUnit: '',
     baseline: 0,
     annualTarget: 0,
+    reportingFrequency: 'QUARTERLY',
+    // Metas trimestrales
     q1Target: 0,
     q2Target: 0,
     q3Target: 0,
     q4Target: 0,
+    // Metas mensuales
+    janTarget: 0,
+    febTarget: 0,
+    marTarget: 0,
+    aprTarget: 0,
+    mayTarget: 0,
+    junTarget: 0,
+    julTarget: 0,
+    augTarget: 0,
+    sepTarget: 0,
+    octTarget: 0,
+    novTarget: 0,
+    decTarget: 0,
     level: '', // strategicAxis, objective, product, activity
     levelId: '',
     isActive: true
@@ -218,10 +233,25 @@ const IndicatorManagement = () => {
         measurementUnit: '',
         baseline: 0,
         annualTarget: 0,
+        reportingFrequency: 'trimestral',
+        // Metas trimestrales
         q1Target: 0,
         q2Target: 0,
         q3Target: 0,
         q4Target: 0,
+        // Metas mensuales
+        janTarget: 0,
+        febTarget: 0,
+        marTarget: 0,
+        aprTarget: 0,
+        mayTarget: 0,
+        junTarget: 0,
+        julTarget: 0,
+        augTarget: 0,
+        sepTarget: 0,
+        octTarget: 0,
+        novTarget: 0,
+        decTarget: 0,
         level: '',
         levelId: '',
         isActive: true
@@ -252,10 +282,25 @@ const IndicatorManagement = () => {
         measurementUnit: indicator.measurementUnit,
         baseline: indicator.baseline || 0,
         annualTarget: indicator.annualTarget,
+        reportingFrequency: indicator.reportingFrequency || 'trimestral',
+        // Metas trimestrales
         q1Target: indicator.q1Target || 0,
         q2Target: indicator.q2Target || 0,
         q3Target: indicator.q3Target || 0,
         q4Target: indicator.q4Target || 0,
+        // Metas mensuales
+        janTarget: indicator.janTarget || 0,
+        febTarget: indicator.febTarget || 0,
+        marTarget: indicator.marTarget || 0,
+        aprTarget: indicator.aprTarget || 0,
+        mayTarget: indicator.mayTarget || 0,
+        junTarget: indicator.junTarget || 0,
+        julTarget: indicator.julTarget || 0,
+        augTarget: indicator.augTarget || 0,
+        sepTarget: indicator.sepTarget || 0,
+        octTarget: indicator.octTarget || 0,
+        novTarget: indicator.novTarget || 0,
+        decTarget: indicator.decTarget || 0,
         level,
         levelId,
         isActive: indicator.isActive
@@ -284,10 +329,25 @@ const IndicatorManagement = () => {
         measurementUnit: formData.measurementUnit,
         baseline: parseFloat(formData.baseline) || 0,
         annualTarget: parseFloat(formData.annualTarget),
+        reportingFrequency: formData.reportingFrequency,
+        // Metas trimestrales
         q1Target: parseFloat(formData.q1Target) || 0,
         q2Target: parseFloat(formData.q2Target) || 0,
         q3Target: parseFloat(formData.q3Target) || 0,
         q4Target: parseFloat(formData.q4Target) || 0,
+        // Metas mensuales
+        janTarget: parseFloat(formData.janTarget) || 0,
+        febTarget: parseFloat(formData.febTarget) || 0,
+        marTarget: parseFloat(formData.marTarget) || 0,
+        aprTarget: parseFloat(formData.aprTarget) || 0,
+        mayTarget: parseFloat(formData.mayTarget) || 0,
+        junTarget: parseFloat(formData.junTarget) || 0,
+        julTarget: parseFloat(formData.julTarget) || 0,
+        augTarget: parseFloat(formData.augTarget) || 0,
+        sepTarget: parseFloat(formData.sepTarget) || 0,
+        octTarget: parseFloat(formData.octTarget) || 0,
+        novTarget: parseFloat(formData.novTarget) || 0,
+        decTarget: parseFloat(formData.decTarget) || 0,
         isActive: formData.isActive
       };
 
@@ -741,6 +801,21 @@ const IndicatorManagement = () => {
 
             <Grid item xs={12} md={6}>
               <FormControl fullWidth required>
+                <InputLabel>Periodicidad de Reporte</InputLabel>
+                <Select
+                  value={formData.reportingFrequency}
+                  onChange={(e) => setFormData({ ...formData, reportingFrequency: e.target.value })}
+                  label="Periodicidad de Reporte"
+                  disabled={dialogMode === 'view'}
+                >
+                  <MenuItem value="QUARTERLY">Trimestral</MenuItem>
+                  <MenuItem value="MONTHLY">Mensual</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth required>
                 <InputLabel>Nivel de Vinculación</InputLabel>
                 <Select
                   value={formData.level}
@@ -803,57 +878,95 @@ const IndicatorManagement = () => {
 
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom>
-                Metas Trimestrales
+                {formData.reportingFrequency === 'MONTHLY' ? 'Metas Mensuales' : 'Metas Trimestrales'}
               </Typography>
             </Grid>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Meta Q1"
-                type="number"
-                value={formData.q1Target}
-                onChange={(e) => setFormData({ ...formData, q1Target: e.target.value })}
-                fullWidth
-                disabled={dialogMode === 'view'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
+            {formData.reportingFrequency === 'MONTHLY' ? (
+              // Metas mensuales
+              <>
+                {[
+                  { key: 'janTarget', label: 'Enero' },
+                  { key: 'febTarget', label: 'Febrero' },
+                  { key: 'marTarget', label: 'Marzo' },
+                  { key: 'aprTarget', label: 'Abril' },
+                  { key: 'mayTarget', label: 'Mayo' },
+                  { key: 'junTarget', label: 'Junio' },
+                  { key: 'julTarget', label: 'Julio' },
+                  { key: 'augTarget', label: 'Agosto' },
+                  { key: 'sepTarget', label: 'Septiembre' },
+                  { key: 'octTarget', label: 'Octubre' },
+                  { key: 'novTarget', label: 'Noviembre' },
+                  { key: 'decTarget', label: 'Diciembre' }
+                ].map((month) => (
+                  <Grid item xs={12} md={3} key={month.key}>
+                    <TextField
+                      label={month.label}
+                      type="number"
+                      value={formData[month.key] || ''}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        [month.key]: e.target.value
+                      })}
+                      fullWidth
+                      disabled={dialogMode === 'view'}
+                      inputProps={{ min: 0, step: 0.01 }}
+                    />
+                  </Grid>
+                ))}
+              </>
+            ) : (
+              // Metas trimestrales
+              <>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Meta Q1"
+                    type="number"
+                    value={formData.q1Target}
+                    onChange={(e) => setFormData({ ...formData, q1Target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Meta Q2"
-                type="number"
-                value={formData.q2Target}
-                onChange={(e) => setFormData({ ...formData, q2Target: e.target.value })}
-                fullWidth
-                disabled={dialogMode === 'view'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Meta Q2"
+                    type="number"
+                    value={formData.q2Target}
+                    onChange={(e) => setFormData({ ...formData, q2Target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Meta Q3"
-                type="number"
-                value={formData.q3Target}
-                onChange={(e) => setFormData({ ...formData, q3Target: e.target.value })}
-                fullWidth
-                disabled={dialogMode === 'view'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Meta Q3"
+                    type="number"
+                    value={formData.q3Target}
+                    onChange={(e) => setFormData({ ...formData, q3Target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
 
-            <Grid item xs={12} md={3}>
-              <TextField
-                label="Meta Q4"
-                type="number"
-                value={formData.q4Target}
-                onChange={(e) => setFormData({ ...formData, q4Target: e.target.value })}
-                fullWidth
-                disabled={dialogMode === 'view'}
-                inputProps={{ min: 0, step: 0.01 }}
-              />
-            </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    label="Meta Q4"
+                    type="number"
+                    value={formData.q4Target}
+                    onChange={(e) => setFormData({ ...formData, q4Target: e.target.value })}
+                    fullWidth
+                    disabled={dialogMode === 'view'}
+                    inputProps={{ min: 0, step: 0.01 }}
+                  />
+                </Grid>
+              </>
+            )}
 
             {dialogMode !== 'view' && (
               <Grid item xs={12}>

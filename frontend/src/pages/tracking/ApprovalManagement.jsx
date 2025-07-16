@@ -445,7 +445,8 @@ const ApprovalManagement = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" gutterBottom display="flex" alignItems="center">
+        <CheckCircle sx={{ mr: 2, color: 'primary.main' }} />
         Gestión de Aprobaciones
       </Typography>
 

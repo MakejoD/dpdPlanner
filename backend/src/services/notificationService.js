@@ -23,10 +23,16 @@ class NotificationService {
   // Enviar notificación a usuario específico
   async sendNotificationToUser(userId, notification) {
     try {
+      // Validar que userId sea un string válido
+      if (!userId || typeof userId !== 'string') {
+        console.warn(`Invalid userId provided: ${userId}`);
+        return null;
+      }
+
       // Guardar notificación en base de datos
       const savedNotification = await prisma.notification.create({
         data: {
-          userId: parseInt(userId),
+          userId: userId, // Usar directamente como string UUID
           title: notification.title,
           message: notification.message,
           type: notification.type || 'INFO',
@@ -52,17 +58,46 @@ class NotificationService {
 
       return savedNotification
     } catch (error) {
-      console.error('Error enviando notificación:', error)
-      throw error
+      console.error(`Error enviando notificación a usuario ${userId}:`, {
+        error: error.message,
+        userId,
+        notificationTitle: notification.title
+      });
+      
+      // No propagar el error para evitar interrumpir el sistema de alertas
+      return null;
     }
   }
 
   // Enviar notificación a múltiples usuarios
   async sendNotificationToUsers(userIds, notification) {
-    const promises = userIds.map(userId => 
+    // Filtrar IDs válidos (strings no vacíos y no NaN)
+    const validUserIds = userIds.filter(userId => 
+      userId && 
+      typeof userId === 'string' && 
+      userId.trim() !== '' && 
+      !userId.includes('NaN')
+    );
+
+    if (validUserIds.length === 0) {
+      console.warn('No valid user IDs provided to sendNotificationToUsers:', userIds);
+      return [];
+    }
+
+    const promises = validUserIds.map(userId => 
       this.sendNotificationToUser(userId, notification)
-    )
-    return Promise.all(promises)
+    );
+    
+    const results = await Promise.allSettled(promises);
+    
+    // Log any failed notifications
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`Failed to send notification to user ${validUserIds[index]}:`, result.reason);
+      }
+    });
+    
+    return results.filter(result => result.status === 'fulfilled').map(result => result.value);
   }
 
   // Enviar notificación por rol
@@ -90,7 +125,7 @@ class NotificationService {
     try {
       const users = await prisma.user.findMany({
         where: {
-          departmentId: parseInt(departmentId)
+          departmentId: departmentId // departmentId ya debería ser string UUID
         },
         select: { id: true }
       })
@@ -108,8 +143,8 @@ class NotificationService {
     try {
       return await prisma.notification.updateMany({
         where: {
-          id: parseInt(notificationId),
-          userId: parseInt(userId)
+          id: notificationId, // notificationId es string UUID
+          userId: userId // userId es string UUID
         },
         data: {
           isRead: true,
@@ -127,7 +162,7 @@ class NotificationService {
     try {
       return await prisma.notification.findMany({
         where: {
-          userId: parseInt(userId),
+          userId: userId, // userId es string UUID
           isRead: false
         },
         orderBy: {
@@ -145,7 +180,7 @@ class NotificationService {
     try {
       return await prisma.notification.findMany({
         where: {
-          userId: parseInt(userId)
+          userId: userId // userId es string UUID
         },
         orderBy: {
           createdAt: 'desc'

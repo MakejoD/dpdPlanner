@@ -41,6 +41,7 @@ import { httpClient } from '../../utils/api';
 
 const ApprovalManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
+
   const [pendingReports, setPendingReports] = useState([]);
   const [myReports, setMyReports] = useState([]);
   const [stats, setStats] = useState({});
@@ -77,51 +78,68 @@ const ApprovalManagement = () => {
   const loadPendingReports = async () => {
     try {
       console.log('🔄 Cargando reportes pendientes...');
-      const response = await httpClient.get('/approvals/pending');
+      const response = await httpClient.get('/api/approvals/pending');
       console.log('📥 Respuesta de /approvals/pending:', response);
       console.log('📊 Data completa:', response.data);
       console.log('📋 Reportes:', response.data?.data?.reports);
-      console.log('📋 Data directa:', response.data);
       
-      // Intentar ambas estructuras
-      const reports = response.data?.data?.reports || response.data?.reports || response.data || [];
+      // Intentar ambas estructuras de respuesta
+      const reports = response.data?.data?.reports || response.data?.data || response.data || [];
       console.log('✅ Reportes finales:', reports);
-      setPendingReports(reports);
+      
+      // Solo usar datos reales de la API
+      setPendingReports(Array.isArray(reports) ? reports : []);
     } catch (error) {
       console.error('❌ Error loading pending reports:', error);
+      setPendingReports([]); // Solo mostrar array vacío en caso de error
     }
   };
 
   const loadMyReports = async () => {
     try {
       console.log('🔄 Cargando mis reportes...');
-      const response = await httpClient.get('/approvals/my-reports');
+      const response = await httpClient.get('/api/approvals/my-reports');
       console.log('📥 Respuesta de /approvals/my-reports:', response);
       console.log('📊 Data completa:', response.data);
       
-      // Intentar ambas estructuras
-      const reports = response.data?.data || response.data || [];
+      // Intentar ambas estructuras de respuesta
+      const reports = response.data?.data?.reports || response.data?.data || response.data || [];
       console.log('✅ Mis reportes finales:', reports);
-      setMyReports(reports);
+      
+      // Solo usar datos reales de la API
+      setMyReports(Array.isArray(reports) ? reports : []);
     } catch (error) {
       console.error('❌ Error loading my reports:', error);
+      setMyReports([]); // Solo mostrar array vacío en caso de error
     }
   };
 
   const loadStats = async () => {
     try {
       console.log('🔄 Cargando estadísticas...');
-      const response = await httpClient.get('/approvals/stats');
+      const response = await httpClient.get('/api/approvals/stats');
       console.log('📥 Respuesta de /approvals/stats:', response);
       console.log('📊 Data completa:', response.data);
-      console.log('📈 Stats:', response.data?.data?.summary);
       
-      // Intentar ambas estructuras
-      const stats = response.data?.data?.summary || response.data?.summary || response.data || {};
+      // Intentar ambas estructuras de respuesta
+      const stats = response.data?.data?.summary || response.data?.summary || response.data?.data || response.data || {};
       console.log('✅ Stats finales:', stats);
-      setStats(stats);
+      
+      // Solo usar datos reales de la API
+      setStats(stats && Object.keys(stats).length > 0 ? stats : {
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        approvalRate: 0
+      });
     } catch (error) {
       console.error('❌ Error loading stats:', error);
+      setStats({
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        approvalRate: 0
+      });
     }
   };
 
@@ -145,7 +163,7 @@ const ApprovalManagement = () => {
         payload.comments = comments.trim(); // También como comentario adicional
       }
       
-      await httpClient.post(`/approvals/${selectedReport.id}/${endpoint}`, payload);
+      await httpClient.post(`/api/approvals/${selectedReport.id}/${endpoint}`, payload);
 
       showSnackbar(`Reporte ${actionType === 'approve' ? 'aprobado' : 'rechazado'} exitosamente`, 'success');
       
@@ -163,7 +181,7 @@ const ApprovalManagement = () => {
 
   const loadApprovalHistory = async (reportId) => {
     try {
-      const response = await httpClient.get(`/approvals/${reportId}/history`);
+      const response = await httpClient.get(`/api/approvals/${reportId}/history`);
       setApprovalHistory(response.data.data || []);
       setHistoryDialogOpen(true);
     } catch (error) {

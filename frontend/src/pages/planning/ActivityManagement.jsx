@@ -117,25 +117,8 @@ const ActivityManagement = () => {
     }
   });
 
-  // Agregar interceptor para debugging
-  apiClient.interceptors.response.use(
-    (response) => {
-      if (response.config.url?.includes('/users')) {
-        console.log(`✅ Usuarios cargados: ${response.data.users?.length || 0}`);
-      }
-      return response;
-    },
-    (error) => {
-      if (error.config?.url?.includes('/users')) {
-        console.error(`❌ Error cargando usuarios:`, error.response?.data);
-      }
-      return Promise.reject(error);
-    }
-  );
-
   // Load data
   useEffect(() => {
-    console.log('🚀 ActivityManagement: Iniciando carga de datos...');
     loadActivities();
     loadProducts();
     loadUsers();
@@ -144,7 +127,6 @@ const ActivityManagement = () => {
   const loadActivities = async () => {
     try {
       setLoading(true);
-      
       // Construir parámetros de filtro
       const params = new URLSearchParams();
       if (filters.productId) params.append('productId', filters.productId);
@@ -153,12 +135,9 @@ const ActivityManagement = () => {
       if (filters.isActive !== null) params.append('isActive', filters.isActive);
 
       const response = await apiClient.get(`/activities?${params.toString()}`);
-      console.log('🔍 Debug loadActivities response:', response.data);
-      
       // La respuesta del backend tiene estructura: { data: [...], pagination: {...} }
       if (response.data && response.data.data) {
         setActivities(response.data.data);
-        
         // Calcular estadísticas
         const activitiesData = response.data.data;
         const total = activitiesData.length;
@@ -172,15 +151,11 @@ const ActivityManagement = () => {
           withAssignments,
           withIndicators
         });
-        
-        console.log('✅ Actividades cargadas exitosamente:', total);
       } else {
-        console.error('❌ Estructura de respuesta inesperada:', response.data);
+        setError('Estructura de respuesta inesperada');
         throw new Error('Estructura de respuesta inesperada');
       }
-
     } catch (error) {
-      console.error('❌ Error al cargar actividades:', error);
       setError('Error al cargar las actividades');
     } finally {
       setLoading(false);
@@ -189,40 +164,22 @@ const ActivityManagement = () => {
 
   const loadProducts = async () => {
     try {
-      console.log('🔍 Cargando productos...');
       const response = await apiClient.get('/products?isActive=true');
-      console.log('📊 Respuesta de productos:', response.data);
-      
       // La respuesta tiene estructura: {success: true, data: [...]}
       const productsData = response.data?.data || [];
-      
       setProducts(productsData);
-      console.log('✅ Productos cargados exitosamente:', productsData.length);
     } catch (error) {
-      console.error('❌ Error al cargar productos:', error);
       setProducts([]); // Asegurar que siempre sea un array
     }
   };
 
   const loadUsers = async () => {
     try {
-      console.log('🔍 Cargando usuarios...');
       const response = await apiClient.get('/users?isActive=true');
-      console.log('📊 Respuesta de usuarios:', response.data);
-      
       // La respuesta tiene estructura: {success: true, data: [...], pagination: {...}}
       const usersData = response.data?.data || [];
-      
-      console.log('👥 Total de usuarios encontrados:', usersData.length);
       setUsers(usersData);
-      
-      if (usersData.length > 0) {
-        console.log('✅ Usuarios cargados exitosamente:', usersData.map(u => `${u.firstName} ${u.lastName}`));
-      } else {
-        console.log('⚠️ No se encontraron usuarios');
-      }
     } catch (error) {
-      console.error('❌ Error al cargar usuarios:', error);
       setError('Error al cargar la lista de usuarios');
       setUsers([]); // Asegurar que siempre sea un array
     }
@@ -315,12 +272,6 @@ const ActivityManagement = () => {
   };
 
   const handleOpenAssignmentDialog = (activity) => {
-    console.log('🎯 Abriendo diálogo de asignación...');
-    console.log('📋 Actividad seleccionada:', activity.name);
-    console.log('👥 Estado actual de usuarios:', users);
-    console.log('📊 Total usuarios disponibles:', users.length);
-    console.log('🔗 Asignaciones actuales de la actividad:', activity.assignments);
-    
     setSelectedActivityForAssignment(activity);
     setAssignmentData({
       userId: '',
@@ -864,15 +815,9 @@ const ActivityManagement = () => {
                     label="Usuario"
                   >
                     {(() => {
-                      console.log('🔍 Evaluando usuarios para el Select...');
-                      console.log('👥 Total usuarios cargados:', users.length);
-                      console.log('📋 Actividad seleccionada:', selectedActivityForAssignment?.name);
-                      console.log('🔗 Asignaciones de la actividad:', selectedActivityForAssignment?.assignments);
-                      
                       const filteredUsers = users.filter(user => {
                         // Si no hay actividad seleccionada, mostrar todos los usuarios
                         if (!selectedActivityForAssignment?.assignments) {
-                          console.log(`✅ Usuario ${user.firstName} ${user.lastName} - Sin restricciones de asignación`);
                           return true;
                         }
                         // Filtrar usuarios ya asignados
@@ -880,16 +825,8 @@ const ActivityManagement = () => {
                           assignment.userId === user.id
                         );
                         
-                        if (isAlreadyAssigned) {
-                          console.log(`❌ Usuario ${user.firstName} ${user.lastName} - Ya está asignado`);
-                        } else {
-                          console.log(`✅ Usuario ${user.firstName} ${user.lastName} - Disponible para asignar`);
-                        }
-                        
                         return !isAlreadyAssigned;
                       });
-                      
-                      console.log('📊 Usuarios filtrados finales:', filteredUsers.length);
                       
                       return filteredUsers.map((user) => (
                         <MenuItem key={user.id} value={user.id}>

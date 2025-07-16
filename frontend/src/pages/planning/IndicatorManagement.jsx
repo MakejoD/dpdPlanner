@@ -318,9 +318,22 @@ const IndicatorManagement = () => {
   };
 
   const handleSubmit = async () => {
+    // Validación de campos obligatorios
+    if (!formData.name || !formData.measurementUnit || !formData.annualTarget || !formData.level || !formData.levelId) {
+      setError('Por favor complete todos los campos obligatorios.');
+      return;
+    }
+
+    // Normalizar reportingFrequency
+    let reportingFrequency = formData.reportingFrequency;
+    if (reportingFrequency === 'trimestral' || reportingFrequency === 'QUARTERLY') {
+      reportingFrequency = 'QUARTERLY';
+    } else if (reportingFrequency === 'mensual' || reportingFrequency === 'MONTHLY') {
+      reportingFrequency = 'MONTHLY';
+    }
+
     try {
       setLoading(true);
-      
       // Preparar datos para envío
       const submitData = {
         name: formData.name,
@@ -329,7 +342,7 @@ const IndicatorManagement = () => {
         measurementUnit: formData.measurementUnit,
         baseline: parseFloat(formData.baseline) || 0,
         annualTarget: parseFloat(formData.annualTarget),
-        reportingFrequency: formData.reportingFrequency,
+        reportingFrequency,
         // Metas trimestrales
         q1Target: parseFloat(formData.q1Target) || 0,
         q2Target: parseFloat(formData.q2Target) || 0,
@@ -379,9 +392,7 @@ const IndicatorManagement = () => {
 
       handleCloseDialog();
       loadIndicators();
-      
     } catch (error) {
-      console.error('Error al guardar indicador:', error);
       setError(error.response?.data?.message || 'Error al guardar el indicador');
     } finally {
       setLoading(false);

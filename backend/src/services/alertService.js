@@ -98,7 +98,9 @@ class AlertService {
       // Notificar reportes vencidos
       for (const report of overdueReports) {
         const assignments = report.indicator?.indicatorAssignments || report.activity?.assignments || []
-        const userIds = assignments.map(assignment => assignment.user.id)
+        const userIds = assignments
+          .filter(assignment => assignment.user && assignment.user.id)
+          .map(assignment => assignment.user.id)
 
         if (userIds.length > 0) {
           await this.notificationService.sendNotificationToUsers(userIds, {
@@ -149,7 +151,9 @@ class AlertService {
       // Notificar reportes próximos a vencer
       for (const report of upcomingReports) {
         const assignments = report.indicator?.indicatorAssignments || report.activity?.assignments || []
-        const userIds = assignments.map(assignment => assignment.user.id)
+        const userIds = assignments
+          .filter(assignment => assignment.user && assignment.user.id)
+          .map(assignment => assignment.user.id)
 
         if (userIds.length > 0) {
           await this.notificationService.sendNotificationToUsers(userIds, {
@@ -216,7 +220,9 @@ class AlertService {
         }
 
         if (alertType) {
-          const userIds = indicator.indicatorAssignments.map(assignment => assignment.user.id)
+          const userIds = indicator.indicatorAssignments
+            .filter(assignment => assignment.user && assignment.user.id)
+            .map(assignment => assignment.user.id)
           
           if (userIds.length > 0) {
             await this.notificationService.sendNotificationToUsers(userIds, {
@@ -274,7 +280,9 @@ class AlertService {
         }
 
         if (alertType) {
-          const userIds = execution.activity.assignments.map(assignment => assignment.user.id)
+          const userIds = execution.activity.assignments
+            .filter(assignment => assignment.user && assignment.user.id)
+            .map(assignment => assignment.user.id)
           
           if (userIds.length > 0) {
             await this.notificationService.sendNotificationToUsers(userIds, {
@@ -314,7 +322,7 @@ class AlertService {
       for (const schedule of paccSchedules) {
         // Verificar fechas límite
         if (schedule.plannedEndDate < now && schedule.status !== 'COMPLETADA') {
-          if (schedule.responsibleUser) {
+          if (schedule.responsibleUser && schedule.responsibleUser.id) {
             await this.notificationService.sendNotificationToUser(schedule.responsibleUser.id, {
               title: '🚨 Cronograma PACC Vencido',
               message: `El cronograma "${schedule.phaseName}" venció el ${schedule.plannedEndDate.toLocaleDateString()}`,
@@ -332,7 +340,7 @@ class AlertService {
         // Verificar próximos vencimientos (7 días)
         const sevenDaysFromNow = new Date(now.getTime() + (7 * 24 * 60 * 60 * 1000))
         if (schedule.plannedEndDate <= sevenDaysFromNow && schedule.plannedEndDate > now && schedule.status === 'PENDIENTE') {
-          if (schedule.responsibleUser) {
+          if (schedule.responsibleUser && schedule.responsibleUser.id) {
             await this.notificationService.sendNotificationToUser(schedule.responsibleUser.id, {
               title: '⏰ Cronograma PACC Próximo a Vencer',
               message: `El cronograma "${schedule.phaseName}" vence el ${schedule.plannedEndDate.toLocaleDateString()}`,
@@ -379,7 +387,9 @@ class AlertService {
       })
 
       for (const activity of activities) {
-        const userIds = activity.assignments.map(assignment => assignment.user.id)
+        const userIds = activity.assignments
+          .filter(assignment => assignment.user && assignment.user.id)
+          .map(assignment => assignment.user.id)
         
         if (userIds.length > 0) {
           const isOverdue = activity.endDate < now

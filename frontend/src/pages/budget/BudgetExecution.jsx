@@ -105,7 +105,6 @@ const BudgetExecution = () => {
   const loadBudgetExecutions = async () => {
     try {
       setLoading(true);
-      
       // Construir query params para filtros
       const queryParams = new URLSearchParams();
       if (filters.activityId) queryParams.append('activityId', filters.activityId);
@@ -115,14 +114,13 @@ const BudgetExecution = () => {
       if (filters.isActive !== undefined) queryParams.append('isActive', filters.isActive);
 
       const response = await httpClient.get(`/budget-execution?${queryParams.toString()}`);
-      
       if (response && response.data && response.data.success) {
         setBudgetExecutions(response.data.data || []);
       } else {
         setBudgetExecutions([]);
       }
     } catch (error) {
-      console.error('Error al cargar ejecuciones presupuestarias:', error);
+      // Log only critical errors in production, or use showSnackbar for user feedback
       showSnackbar('Error al cargar las ejecuciones presupuestarias', 'error');
     } finally {
       setLoading(false);
@@ -139,7 +137,7 @@ const BudgetExecution = () => {
         setActivities([]);
       }
     } catch (error) {
-      console.error('Error al cargar actividades:', error);
+      // Error loading activities; optionally showSnackbar or ignore for now
     }
   };
 
@@ -153,7 +151,7 @@ const BudgetExecution = () => {
         setDepartments([]);
       }
     } catch (error) {
-      console.error('Error al cargar departamentos:', error);
+      // Error loading departments; optionally showSnackbar or ignore for now
     }
   };
 
@@ -285,7 +283,7 @@ const BudgetExecution = () => {
         loadBudgetExecutions();
       }
     } catch (error) {
-      console.error('Error al guardar ejecución presupuestaria:', error);
+      // Log only critical errors in production, or use showSnackbar for user feedback
       const errorMessage = error.response?.data?.message || 'Error al guardar la ejecución presupuestaria';
       showSnackbar(errorMessage, 'error');
     }
@@ -295,7 +293,6 @@ const BudgetExecution = () => {
   const handleDelete = async () => {
     try {
       const response = await httpClient.delete(`/budget-execution/${executionToDelete.id}`);
-      
       if (response.data.success) {
         showSnackbar('Ejecución presupuestaria eliminada exitosamente');
         setDeleteDialogOpen(false);
@@ -303,7 +300,7 @@ const BudgetExecution = () => {
         loadBudgetExecutions();
       }
     } catch (error) {
-      console.error('Error al eliminar ejecución presupuestaria:', error);
+      // Log only critical errors in production, or use showSnackbar for user feedback
       const errorMessage = error.response?.data?.message || 'Error al eliminar la ejecución presupuestaria';
       showSnackbar(errorMessage, 'error');
     }
